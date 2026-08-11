@@ -6,10 +6,10 @@
 // page is opened with Live Server or directly from a file, call the local API
 // service instead so forms still reach MySQL.
 const API_BASE =
-    location.hostname === "localhost" || location.hostname === "127.0.0.1" ?
+    location.hostname === "localhost" ||
+    location.hostname === "127.0.0.1" ?
     "http://127.0.0.1:3001" :
-    "https://ghar-se-snacks-backend.onrender.com";
-
+    "";
 // ============ STATE ============
 let PRODUCTS = [];
 let CART = [];
@@ -372,13 +372,9 @@ async function loadReviews(productId) {
         const data = await api("/api/reviews");
         const reviews = (data.reviews || []).filter((r) => r.product_id === productId);
         if (!reviews.length) {
-            list.innerHTML = "";
-            return;
-        }
-        if (!reviews.length) {
-            list.innerHTML = `<p class="empty-reviews">No reviews yet — be the first to share one!</p>`;
-            return;
-        }
+    list.innerHTML = `<p class="empty-reviews">No reviews yet — be the first to share one!</p>`;
+    return;
+}
         list.innerHTML = reviews.map((r) => `
             <div class="review-card">
                 <div class="review-card-head">
@@ -398,11 +394,7 @@ async function loadReviews(productId) {
 document.addEventListener("submit", async(e) => {
     if (e.target.id !== "reviewForm") return;
     e.preventDefault();
-    if (!CURRENT_USER) {
-        showToast("Please create an account or log in before posting a review.", true);
-        openModal("authModal");
-        return;
-    }
+    
     const form = e.target;
     const formData = new FormData(form);
     try {
@@ -440,11 +432,7 @@ async function addToCart(productId, quantity) {
     if (!product) return;
     if (!Number.isInteger(quantity) || quantity < 1) return;
     if (Number(product.stock) <= 0) {
-        if (!CURRENT_USER) {
-            showToast("Please log in to request an unavailable product.", true);
-            openModal("authModal");
-            return;
-        }
+        
         try {
             const result = await api('/api/product-interest', {
                 method: 'POST',
@@ -530,13 +518,26 @@ document.addEventListener("submit", async(e) => {
     submitBtn.disabled = true;
 
     try {
-        const data = await api("/api/create-order", {
-            method: "POST",
-            body: JSON.stringify({
-                customer: { userId: CURRENT_USER ? CURRENT_USER.id : null },
-                items: CART.map((item) => ({ id: item.id, quantity: item.quantity }))
-            })
-        });
+        const formData = new FormData(form);
+
+const data = await api("/api/create-order", {
+    method: "POST",
+    body: JSON.stringify({
+        customer: {
+            userId: CURRENT_USER ? CURRENT_USER.id : null,
+            name: formData.get("name"),
+            email: formData.get("email"),
+            phone: formData.get("phone"),
+            address: formData.get("address"),
+            place: formData.get("place"),
+            state: formData.get("state")
+        },
+        items: CART.map((item) => ({
+            id: item.id,
+            quantity: item.quantity
+        }))
+    })
+});
 
         const options = {
             key: data.key,
@@ -544,7 +545,7 @@ document.addEventListener("submit", async(e) => {
             currency: data.currency,
             name: "GharSe Snacks",
             description: "Order payment",
-            order_id: data.orderId,
+            order_id: data.razorpayOrderId,
             handler: async function(response) {
                 try {
                     await api("/api/verify-payment", {
