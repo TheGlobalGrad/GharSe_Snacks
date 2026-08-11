@@ -1,0 +1,17 @@
+{
+    "name": "GharSe_Snacks-backend",
+    "version": "1.0.0",
+    "description": "GharSe_Snacks backend",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js"
+    },
+    "dependencies": {
+        "bcryptjs": "^2.4.3",
+        "cors": "^2.8.6",
+        "dotenv": "^17.4.2",
+        "express": "^5.2.1",
+        "mysql2": "^3.23.2",
+        "razorpay": "^2.9.8"
+    }
+}

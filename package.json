@@ -1,0 +1,10 @@
+{
+  "name": "gharse-storefront",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "start:full": "node start-full.mjs"
+  },
+  "engines": { "node": ">=18" }
+}

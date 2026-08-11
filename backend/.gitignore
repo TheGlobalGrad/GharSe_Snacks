@@ -1,0 +1,15 @@
+node_modules/
+.env
+.env.*
+!.env.example
+node.exe
+node.js
+corepack
+corepack.cmd
+nodevars.bat
+npm
+npm.cmd
+npm.ps1
+npx
+npx.cmd
+npx.ps1
