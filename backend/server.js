@@ -111,7 +111,7 @@ function getStateCode(state, place) {
 // SERVE FRONTEND
 // =====================================================
 
-const frontendPath = path.join(__dirname, "..");
+const frontendPath = path.join(__dirname, "..", "frontend");
 
 app.use(express.static(frontendPath));
 
