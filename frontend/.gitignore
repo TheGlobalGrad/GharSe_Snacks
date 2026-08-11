@@ -2,10 +2,9 @@ node_modules/
 .env
 .env.*
 !.env.example
+data/
 node.exe
 node.js
-corepack
-corepack.cmd
 nodevars.bat
 npm
 npm.cmd
@@ -13,3 +12,5 @@ npm.ps1
 npx
 npx.cmd
 npx.ps1
+corepack
+corepack.cmd
