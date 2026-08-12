@@ -51,32 +51,35 @@ function query(sql, params = []) {
 
 // Customer ID
 // Example: GSS-MH-000001
-function generateCustomerId(stateCode, numericId) {
+// Customer ID
+// Example: GSS-MUM-000001
+function generateCustomerId(place, numericId) {
     const padded = String(numericId).padStart(6, "0");
 
-    const cleanState = String(stateCode || "IN")
+    const cleanCity = String(place || "INDIA")
         .trim()
         .toUpperCase()
         .replace(/[^A-Z]/g, "")
-        .slice(0, 2) || "IN";
+        .slice(0, 3) || "IND";
 
-    return `GSS-${cleanState}-${padded}`;
+    return `GSS-${cleanCity}-${padded}`;
 }
 
 // Order ID
 // Example: GSS-MH-ORD-000001
-function generateOrderId(stateCode, numericId) {
+// Order ID
+// Example: GSS-MUM-ORD-000001
+function generateOrderId(place, numericId) {
     const padded = String(numericId).padStart(6, "0");
 
-    const cleanState = String(stateCode || "IN")
+    const cleanCity = String(place || "INDIA")
         .trim()
         .toUpperCase()
         .replace(/[^A-Z]/g, "")
-        .slice(0, 2) || "IN";
+        .slice(0, 3) || "IND";
 
-    return `GSS-${cleanState}-ORD-${padded}`;
+    return `GSS-${cleanCity}-ORD-${padded}`;
 }
-
 // Generic reference
 // Example: GSS-PAY-000001
 // Example: GSS-REV-000001
@@ -92,16 +95,6 @@ function generateReferenceId(prefix, numericId) {
 // STATE CODE HELPER
 // =====================================================
 
-function getStateCode(state, place) {
-    const value = state || place || "IN";
-
-    const clean = String(value)
-        .trim()
-        .toUpperCase()
-        .replace(/[^A-Z]/g, "");
-
-    return clean.slice(0, 2) || "IN";
-}
 
 // =====================================================
 // HOME
@@ -623,12 +616,9 @@ app.post("/api/auth/signup", async(req, res) => {
             ]
         );
 
-        const stateCode =
-            getStateCode(state, place);
-
         const customerId =
             generateCustomerId(
-                stateCode,
+                place,
                 result.insertId
             );
 
@@ -986,15 +976,9 @@ app.post("/api/create-order", async(req, res) => {
                     userId =
                         guestResult.insertId;
 
-                    const stateCode =
-                        getStateCode(
-                            customer.state,
-                            customer.place
-                        );
-
                     const customerId =
                         generateCustomerId(
-                            stateCode,
+                            customer.place,
                             userId
                         );
 
@@ -1063,15 +1047,9 @@ app.post("/api/create-order", async(req, res) => {
                 userId =
                     guestResult.insertId;
 
-                const stateCode =
-                    getStateCode(
-                        customer.state,
-                        customer.place
-                    );
-
                 const customerId =
                     generateCustomerId(
-                        stateCode,
+                        customer.place,
                         userId
                     );
 
@@ -1295,16 +1273,10 @@ app.post("/api/create-order", async(req, res) => {
         // ORDER NUMBER
         // =================================================
 
-        const stateCode =
-            getStateCode(
-                customer.state,
-                customer.place ||
-                dbCustomer.place
-            );
-
         const orderNumber =
             generateOrderId(
-                stateCode,
+                customer.place ||
+                dbCustomer.place,
                 dbOrderId
             );
 

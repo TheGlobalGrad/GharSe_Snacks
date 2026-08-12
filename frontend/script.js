@@ -74,20 +74,7 @@ const PRODUCT_IMAGE_FILES = {
 // CITY / CATEGORY CODES
 // =====================================================
 
-const CITY_CATEGORY_CODES = {
-    Ratlam: "GSS-CITY-001",
-    Indore: "GSS-CITY-002",
-    Kochi: "GSS-CITY-003",
-    Pune: "GSS-CITY-004",
-    Bikaner: "GSS-CITY-005",
-    Jaipur: "GSS-CITY-006",
-    Ahmedabad: "GSS-CITY-007"
-};
 
-function getCategoryCode(city) {
-    return CITY_CATEGORY_CODES[city] ||
-        "GSS-CITY-000";
-}
 
 // =====================================================
 // PRODUCT CATALOG
@@ -346,10 +333,7 @@ const PRODUCT_CATALOG = [
     id: -(index + 1),
 
     // GharSe Snacks category ID
-    category_code: getCategoryCode(product.city),
 
-    // GharSe Snacks product ID
-    product_code: `GSS-PRODUCT-${String(index + 1).padStart(6, "0")}`,
 
     image_url: product.image_url ||
         "Images/Coming Soon.jpeg"
@@ -798,13 +782,9 @@ async function loadProducts() {
                             "",
 
                         // Keep our display IDs
-                        category_code: localProduct.category_code ||
-                            dbProduct.category_code ||
-                            "",
+                        category_code: dbProduct.category_code || "",
 
-                        product_code: localProduct.product_code ||
-                            dbProduct.product_code ||
-                            ""
+                        product_code: dbProduct.product_code || ""
 
                     };
 
