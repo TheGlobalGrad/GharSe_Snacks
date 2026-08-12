@@ -782,8 +782,7 @@ async function loadProducts() {
                             "",
 
                         // Keep our display IDs
-                        category_code: dbProduct.category_code || "",
-
+                        category_code: dbProduct.category_id || "",
                         product_code: dbProduct.product_code || ""
 
                     };
