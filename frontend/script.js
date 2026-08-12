@@ -422,81 +422,143 @@ function initCarousel() {
 async function loadProducts() {
     const grid = document.getElementById("productGrid");
     if (!grid) return;
+
     try {
         const data = await api("/api/products");
         const apiProducts = data.products || [];
-        const productsByName = new Map(apiProducts.map((product) => [String(product.name).trim().toLowerCase(), product]));
-        async function loadProducts() {
-            const grid = document.getElementById("productGrid");
-            if (!grid) return;
 
-            try {
-                const data = await api("/api/products");
-                const apiProducts = data.products || [];
+        const productsByName = new Map(
+            apiProducts.map((product) => [
+                String(product.name).trim().toLowerCase(),
+                product
+            ])
+        );
 
-                const productsByName = new Map(
-                    apiProducts.map((product) => [
-                        String(product.name).trim().toLowerCase(),
-                        product
-                    ])
-                );
+        PRODUCTS = PRODUCT_CATALOG.map((localProduct) => {
+            const dbProduct = productsByName.get(
+                localProduct.name.trim().toLowerCase()
+            );
 
-                PRODUCTS = PRODUCT_CATALOG.map((localProduct) => {
-                    const dbProduct = productsByName.get(
-                        localProduct.name.trim().toLowerCase()
-                    );
-
-                    if (!dbProduct) {
-                        return localProduct;
-                    }
-
-                    // IMPORTANT:
-                    // Database provides the technical ID/category/reviews.
-                    // Local catalog controls price, city, image and stock display.
-                    return {
-                        ...dbProduct,
-                        ...localProduct,
-                        id: Number(dbProduct.id),
-                        category: localProduct.category || dbProduct.category,
-                        city: localProduct.city
-                    };
-                });
-
-                // Keep city order exactly as the local catalog.
-                PRODUCTS.sort((a, b) => {
-                    const cityOrder = [
-                        "Ratlam",
-                        "Indore",
-                        "Kochi",
-                        "Pune",
-                        "Bikaner",
-                        "Jaipur",
-                        "Ahmedabad"
-                    ];
-
-                    return cityOrder.indexOf(a.city) - cityOrder.indexOf(b.city);
-                });
-
-            } catch (err) {
-                PRODUCTS = PRODUCT_CATALOG;
-
-                console.warn(
-                    "Product API unavailable; displaying local product catalog.",
-                    err
-                );
+            if (!dbProduct) {
+                return localProduct;
             }
 
-            reconcileCartWithProducts();
-            renderProducts();
-            loadProductRatings();
-        }
+            return {
+                ...dbProduct,
+
+                // LOCAL CATALOG controls these
+                ...localProduct,
+
+                // DATABASE controls the real product ID
+                id: Number(dbProduct.id),
+
+                // Keep local category and city
+                category: localProduct.category || dbProduct.category,
+                city: localProduct.city
+            };
+        });
+
+        // Keep the desired city/product order
+        const cityOrder = [
+            "Indore",
+            "Kochi",
+            "Pune",
+            "Jaipur",
+            "Bikaner",
+            "Ratlam",
+            "Ahmedabad"
+        ];
+
+        PRODUCTS.sort((a, b) => {
+            return cityOrder.indexOf(a.city) - cityOrder.indexOf(b.city);
+        });
+
     } catch (err) {
+        // If backend/API is unavailable,
+        // still show the local catalog.
         PRODUCTS = PRODUCT_CATALOG;
-        console.warn("Product API unavailable; displaying the local product catalog.", err);
+
+        console.warn(
+            "Product API unavailable; displaying local product catalog.",
+            err
+        );
     }
+
     reconcileCartWithProducts();
     renderProducts();
     loadProductRatings();
+}
+async function loadProducts() {
+    const grid = document.getElementById("productGrid");
+    if (!grid) return;
+
+    try {
+        const data = await api("/api/products");
+        const apiProducts = data.products || [];
+
+        const productsByName = new Map(
+            apiProducts.map((product) => [
+                String(product.name).trim().toLowerCase(),
+                product
+            ])
+        );
+
+        PRODUCTS = PRODUCT_CATALOG.map((localProduct) => {
+            const dbProduct = productsByName.get(
+                localProduct.name.trim().toLowerCase()
+            );
+
+            if (!dbProduct) {
+                return localProduct;
+            }
+
+            // IMPORTANT:
+            // Database provides the technical ID/category/reviews.
+            // Local catalog controls price, city, image and stock display.
+            return {
+                ...dbProduct,
+                ...localProduct,
+                id: Number(dbProduct.id),
+                category: localProduct.category || dbProduct.category,
+                city: localProduct.city
+            };
+        });
+
+        // Keep city order exactly as the local catalog.
+        PRODUCTS.sort((a, b) => {
+            const cityOrder = [
+                "Ratlam",
+                "Indore",
+                "Kochi",
+                "Pune",
+                "Bikaner",
+                "Jaipur",
+                "Ahmedabad"
+            ];
+
+            return cityOrder.indexOf(a.city) - cityOrder.indexOf(b.city);
+        });
+
+    } catch (err) {
+        PRODUCTS = PRODUCT_CATALOG;
+
+        console.warn(
+            "Product API unavailable; displaying local product catalog.",
+            err
+        );
+    }
+
+    reconcileCartWithProducts();
+    renderProducts();
+    loadProductRatings();
+}
+} catch (err) {
+    PRODUCTS = PRODUCT_CATALOG;
+    console.warn("Product API unavailable; displaying the local product catalog.", err);
+}
+reconcileCartWithProducts();
+renderProducts();
+loadProductRatings();
 }
 
 async function loadProductRatings() {
