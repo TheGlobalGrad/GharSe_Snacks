@@ -18,47 +18,269 @@ let AUTH_MODE = "login"; // "login" | "signup"
 let ACTIVE_PRODUCT_ID = null;
 let PRODUCT_RATINGS = new Map();
 
+// =====================================================
+// LOCAL PRODUCT CATALOG
+// Price, city and images are controlled here.
+// Database is NOT used for product prices.
+// =====================================================
+
 const PRODUCT_IMAGE_FILES = {
-    "classic thepla box": "Images/Thepla.jpeg",
-    "khakhra crunch pack": "Images/Khakhra.jpeg",
-    "bhakri bites": "Images/Bhakhri.jpeg",
-    "indori tikhi sev": "Images/Rtalami Sev.jpeg",
+    "sev": "Images/Sev.jpeg",
+    "spicy parmal / murmure": "Images/Spicy Parmal.jpeg",
+    "spicy potato chips": "Images/Spicy Potato Chips.jpeg",
     "banana chips": "Images/Banana Chips.jpeg",
-    "besan ladoo": "Images/Besan Ladoo.jpeg",
-    "gathiya": "Images/Gtahiya.png",
     "bhakarwadi": "Images/Bhakarwadi.jpeg",
     "chana jor": "Images/Chana Jor.jpeg",
-    "chivda": "Images/Chivda.jpeg",
-    "potato chips": "Images/Potato Chips.jpeg",
-    "ragi chips": "Images/Raagi Chips.jpeg",
-    "soya sticks": "Images/Soya Sticks.jpeg"
+    "besan ladoo": "Images/Besan Ladoo.jpeg",
+
+    "masala khakhra": "Images/Coming Soon.jpeg",
+    "methi khakhra": "Images/Coming Soon.jpeg",
+    "jeera khakhra": "Images/Coming Soon.jpeg",
+    "thepla": "Images/Coming Soon.jpeg",
+    "coin khakhra (peri peri)": "Images/Coming Soon.jpeg",
+    "coin khakhra (pani puri)": "Images/Coming Soon.jpeg",
+    "coin khakhra (jain)": "Images/Coming Soon.jpeg",
+    "coin khakhra (achari)": "Images/Coming Soon.jpeg",
+    "soya chips": "Images/Soya Chips.jpeg",
+    "raagi chips": "Images/Coming Soon.jpeg",
+    "beetroot chips": "Images/Coming Soon.jpeg",
+    "bhakhri": "Images/Coming Soon.jpeg",
+
+    // Default image for all coming-soon products
+    "coming soon": "Images/Coming Soon.jpeg"
 };
 
-// The storefront must remain browsable when the optional API is not running
-// (for example, when index.html is opened through a static development server).
-// API products replace these entries whenever the backend is available.
+
+// =====================================================
+// PRODUCT CATALOG
+// ON-BOARD PRODUCTS FIRST
+// THEN AHMEDABAD / COMING SOON PRODUCTS
+// =====================================================
+
 const PRODUCT_CATALOG = [
-    ["Classic Thepla Box", "Images/Thepla.jpeg", "Soft, spiced Gujarati thepla for a comforting chai-time break."],
-    ["Khakhra Crunch Pack", "Images/Khakhra.jpeg", "Light, crisp khakhra with a satisfying roasted crunch."],
-    ["Bhakri Bites", "Images/Bhakhri.jpeg", "Traditional bhakri bites made for snacking anywhere."],
-    ["Indori Tikhi Sev", "Images/Rtalami Sev.jpeg", "Bold, spicy sev inspired by Indore's famous flavours."],
-    ["Banana Chips", "Images/Banana Chips.jpeg", "Golden, crunchy banana chips with simple coastal flavour."],
-    ["Besan Ladoo", "Images/Besan Ladoo.jpeg", "A melt-in-the-mouth besan ladoo for a sweet little treat."],
-    ["Gathiya", "Images/Gtahiya.png", "Classic Gujarati gathiya, crisp and ready for chai."],
-    ["Bhakarwadi", "Images/Bhakarwadi.jpeg", "Spiral bhakarwadi with sweet, spicy, tangy filling."],
-    ["Chana Jor", "Images/Chana Jor.jpeg", "Crunchy spiced chana jor for an anytime bite."],
-    ["Chivda", "Images/Chivda.jpeg", "A savoury chivda mix with layers of crunch."],
-    ["Potato Chips", "Images/Potato Chips.jpeg", "Classic potato chips with an irresistible crisp."],
-    ["Ragi Chips", "Images/Raagi Chips.jpeg", "Wholesome ragi chips with a satisfying crunch."],
-    ["Soya Sticks", "Images/Soya Sticks.jpeg", "Seasoned soya sticks for a protein-packed snack break."]
-].map(([name, image_url, description], index) => ({
+
+    // =================================================
+    // RATLAM
+    // =================================================
+    {
+        name: "Sev",
+        city: "Ratlam",
+        price: 69,
+        image_url: "Images/Sev.jpeg",
+        description: "Crispy and flavourful Ratlami sev, perfect for chai-time snacking.",
+        stock: 100,
+        category: "Ratlami Snacks"
+    },
+
+    // =================================================
+    // INDORE
+    // =================================================
+    {
+        name: "Spicy Potato Chips",
+        city: "Indore",
+        price: 35,
+        image_url: "Images/Spicy Potato Chips.jpeg",
+        description: "Crispy spicy potato chips with a bold, satisfying crunch.",
+        stock: 100,
+        category: "Indori Snacks"
+    },
+
+    {
+        name: "Spicy Parmal / Murmure",
+        city: "Indore",
+        price: 69,
+        image_url: "Images/Spicy Parmal.jpeg",
+        description: "A spicy and crunchy Indori-style parmal and murmure snack.",
+        stock: 100,
+        category: "Indori Snacks"
+    },
+
+    // =================================================
+    // KOCHI
+    // =================================================
+    {
+        name: "Banana Chips",
+        city: "Kochi",
+        price: 35,
+        image_url: "Images/Banana Chips.jpeg",
+        description: "Crispy banana chips inspired by Kerala's classic snack.",
+        stock: 100,
+        category: "Kerala Snacks"
+    },
+
+    // =================================================
+    // PUNE
+    // =================================================
+    {
+        name: "Bhakarwadi",
+        city: "Pune",
+        price: 89,
+        image_url: "Images/Bhakarwadi.jpeg",
+        description: "Sweet, spicy and tangy spiral bhakarwadi with a delicious crunch.",
+        stock: 100,
+        category: "Maharashtrian Snacks"
+    },
+
+    // =================================================
+    // BIKANER
+    // =================================================
+    {
+        name: "Chana Jor",
+        city: "Bikaner",
+        price: 45,
+        image_url: "Images/Chana Jor.jpeg",
+        description: "Crunchy spiced chana jor for an anytime snack.",
+        stock: 100,
+        category: "Rajasthani Snacks"
+    },
+
+    // =================================================
+    // JAIPUR
+    // =================================================
+    {
+        name: "Besan Ladoo",
+        city: "Jaipur",
+        price: 35,
+        image_url: "Images/Besan Ladoo.jpeg",
+        description: "Traditional besan ladoo with a rich, comforting sweetness.",
+        stock: 100,
+        category: "Rajasthani Sweets"
+    },
+
+
+    // =================================================
+    // AHMEDABAD — COMING SOON
+    // =================================================
+
+    {
+        name: "Masala Khakhra",
+        city: "Ahmedabad",
+        price: null,
+        image_url: "Images/Coming Soon.jpeg",
+        description: "Crispy Gujarati khakhra with a delicious masala flavour.",
+        stock: 0,
+        category: "Gujarati Snacks"
+    },
+
+    {
+        name: "Methi Khakhra",
+        city: "Ahmedabad",
+        price: null,
+        image_url: "Images/Coming Soon.jpeg",
+        description: "Classic Gujarati khakhra flavoured with methi.",
+        stock: 0,
+        category: "Gujarati Snacks"
+    },
+
+    {
+        name: "Jeera Khakhra",
+        city: "Ahmedabad",
+        price: null,
+        image_url: "Images/Coming Soon.jpeg",
+        description: "Light and crispy khakhra with the familiar flavour of jeera.",
+        stock: 0,
+        category: "Gujarati Snacks"
+    },
+
+    {
+        name: "Thepla",
+        city: "Ahmedabad",
+        price: null,
+        image_url: "Images/Coming Soon.jpeg",
+        description: "Soft, spiced Gujarati thepla made for a comforting snack.",
+        stock: 0,
+        category: "Gujarati Snacks"
+    },
+
+    {
+        name: "Coin Khakhra (Peri Peri)",
+        city: "Ahmedabad",
+        price: null,
+        image_url: "Images/Coming Soon.jpeg",
+        description: "Mini coin-shaped khakhra with a spicy peri peri flavour.",
+        stock: 0,
+        category: "Gujarati Snacks"
+    },
+
+    {
+        name: "Coin Khakhra (Pani Puri)",
+        city: "Ahmedabad",
+        price: null,
+        image_url: "Images/Coming Soon.jpeg",
+        description: "Mini coin-shaped khakhra with a fun pani puri-inspired flavour.",
+        stock: 0,
+        category: "Gujarati Snacks"
+    },
+
+    {
+        name: "Coin Khakhra (Jain)",
+        city: "Ahmedabad",
+        price: null,
+        image_url: "Images/Coming Soon.jpeg",
+        description: "Mini coin-shaped Jain-friendly khakhra.",
+        stock: 0,
+        category: "Gujarati Snacks"
+    },
+
+    {
+        name: "Coin Khakhra (Achari)",
+        city: "Ahmedabad",
+        price: null,
+        image_url: "Images/Coming Soon.jpeg",
+        description: "Mini coin-shaped khakhra with a tangy achari flavour.",
+        stock: 0,
+        category: "Gujarati Snacks"
+    },
+
+    {
+        name: "Soya Chips",
+        city: "Ahmedabad",
+        price: null,
+        image_url: "Images/Coming Soon.jpeg",
+        description: "Crunchy soya-based chips for a satisfying snack.",
+        stock: 0,
+        category: "Gujarati Snacks"
+    },
+
+    {
+        name: "Raagi Chips",
+        city: "Ahmedabad",
+        price: null,
+        image_url: "Images/Coming Soon.jpeg",
+        description: "Crunchy raagi chips with a wholesome twist.",
+        stock: 0,
+        category: "Gujarati Snacks"
+    },
+
+    {
+        name: "Beetroot Chips",
+        city: "Ahmedabad",
+        price: null,
+        image_url: "Images/Coming Soon.jpeg",
+        description: "Crispy beetroot chips with a distinctive flavour.",
+        stock: 0,
+        category: "Gujarati Snacks"
+    },
+
+    {
+        name: "Bhakhri",
+        city: "Ahmedabad",
+        price: null,
+        image_url: "Images/Coming Soon.jpeg",
+        description: "Traditional Gujarati bhakhri made for everyday snacking.",
+        stock: 0,
+        category: "Gujarati Snacks"
+    }
+
+].map((product, index) => ({
+    ...product,
+
+    // Temporary local ID.
+    // The real database ID will be attached when the API is available.
     id: -(index + 1),
-    name,
-    image_url,
-    description,
-    price: 100,
-    stock: 100,
-    category: "GharSe Snacks"
+
+    // Keep a consistent image field.
+    image_url: product.image_url || "Images/Coming Soon.jpeg"
 }));
 
 // ============ HELPERS ============
@@ -97,8 +319,17 @@ function showSuccess(title, message) {
 }
 
 function productImage(product) {
-    const databasePath = String(product.image_url || "").replace(/^images\//i, "Images/");
-    return databasePath || PRODUCT_IMAGE_FILES[String(product.name || "").trim().toLowerCase()] || "gharse-logo-centered.jpg";
+    const name = String(product.name || "").trim().toLowerCase();
+
+    // Coming-soon products always use the coming-soon image
+    if (Number(product.stock) <= 0 || product.price == null) {
+        return "Images/Coming Soon.jpeg";
+    }
+
+    // Use the local product image first.
+    return PRODUCT_IMAGE_FILES[name] ||
+        product.image_url ||
+        "Logo.jpeg";
 }
 
 function openProfile() {
@@ -195,9 +426,70 @@ async function loadProducts() {
         const data = await api("/api/products");
         const apiProducts = data.products || [];
         const productsByName = new Map(apiProducts.map((product) => [String(product.name).trim().toLowerCase(), product]));
-        PRODUCTS = PRODUCT_CATALOG.map((catalogProduct) =>
-            productsByName.get(catalogProduct.name.toLowerCase()) || catalogProduct
-        );
+        async function loadProducts() {
+            const grid = document.getElementById("productGrid");
+            if (!grid) return;
+
+            try {
+                const data = await api("/api/products");
+                const apiProducts = data.products || [];
+
+                const productsByName = new Map(
+                    apiProducts.map((product) => [
+                        String(product.name).trim().toLowerCase(),
+                        product
+                    ])
+                );
+
+                PRODUCTS = PRODUCT_CATALOG.map((localProduct) => {
+                    const dbProduct = productsByName.get(
+                        localProduct.name.trim().toLowerCase()
+                    );
+
+                    if (!dbProduct) {
+                        return localProduct;
+                    }
+
+                    // IMPORTANT:
+                    // Database provides the technical ID/category/reviews.
+                    // Local catalog controls price, city, image and stock display.
+                    return {
+                        ...dbProduct,
+                        ...localProduct,
+                        id: Number(dbProduct.id),
+                        category: localProduct.category || dbProduct.category,
+                        city: localProduct.city
+                    };
+                });
+
+                // Keep city order exactly as the local catalog.
+                PRODUCTS.sort((a, b) => {
+                    const cityOrder = [
+                        "Ratlam",
+                        "Indore",
+                        "Kochi",
+                        "Pune",
+                        "Bikaner",
+                        "Jaipur",
+                        "Ahmedabad"
+                    ];
+
+                    return cityOrder.indexOf(a.city) - cityOrder.indexOf(b.city);
+                });
+
+            } catch (err) {
+                PRODUCTS = PRODUCT_CATALOG;
+
+                console.warn(
+                    "Product API unavailable; displaying local product catalog.",
+                    err
+                );
+            }
+
+            reconcileCartWithProducts();
+            renderProducts();
+            loadProductRatings();
+        }
     } catch (err) {
         PRODUCTS = PRODUCT_CATALOG;
         console.warn("Product API unavailable; displaying the local product catalog.", err);
@@ -254,8 +546,18 @@ function renderProducts() {
                 <img src="${escapeHtml(productImage(p))}" alt="${escapeHtml(p.name)}" loading="lazy" />
             </div>
             <div class="product-top">
-                <h3>${escapeHtml(p.name)}</h3>
-                <span class="product-price">${Number(p.price) > 0 ? money(p.price) : 'Coming soon'}</span>
+                <div class="product-top">
+    <div>
+        <h3>${escapeHtml(p.name)}</h3>
+        <small class="product-city">${escapeHtml(p.city || "")}</small>
+    </div>
+
+    <span class="product-price">
+        ${p.price != null && Number(p.price) > 0
+            ? money(p.price)
+            : "Coming soon"}
+    </span>
+</div>
             </div>
             <p>${escapeHtml(p.description || "")}</p>
             <button class="product-rating text-link" data-view="${p.id}" type="button" aria-label="Read or write a review for ${escapeHtml(p.name)}">★★★★★ <span>${ratingText}</span></button>
@@ -284,9 +586,13 @@ function escapeHtml(str) {
 }
 
 function getQtyFor(productId) {
-    const el = Array.from(document.querySelectorAll(`[data-qty-for="${productId}"] [data-qty-value]`))
-        .find((item) => item.offsetParent !== null);
-    return el ? Number(el.textContent) : 1;
+    const el = Array.from(
+        document.querySelectorAll(
+            `[data-qty-for="${productId}"] [data-qty-value]`
+        )
+    ).find((item) => item.offsetParent !== null);
+
+    return el ? Number(el.textContent) : 0;
 }
 
 document.addEventListener("click", (e) => {
@@ -301,9 +607,17 @@ document.addEventListener("click", (e) => {
     }
 
     const addBtn = e.target.closest("[data-add-to-cart]");
+
     if (addBtn) {
         const id = Number(addBtn.dataset.addToCart);
-        addToCart(id, getQtyFor(id));
+        const quantity = getQtyFor(id);
+
+        if (quantity < 1) {
+            showToast("Please select a quantity first.", true);
+            return;
+        }
+
+        addToCart(id, quantity);
         return;
     }
 
@@ -453,6 +767,15 @@ async function addToCart(productId, quantity) {
     persistCart();
     renderCart();
     showToast(`${product.name} added to cart.`);
+    const qtyValue = Array.from(
+    document.querySelectorAll(
+        `[data-qty-for="${productId}"] [data-qty-value]`
+    )
+).find((item) => item.offsetParent !== null);
+
+if (qtyValue) {
+    qtyValue.textContent = "0";
+}
 }
 
 function removeFromCart(productId) {
@@ -764,4 +1087,37 @@ document.addEventListener("DOMContentLoaded", () => {
     loadProducts();
     loadCart();
     setAuthMode("login");
+});
+
+// =====================================================
+// CITY CLICK → SCROLL TO FIRST PRODUCT OF THAT CITY
+// =====================================================
+
+document.addEventListener("click", (e) => {
+    const cityChip = e.target.closest(".city-chip");
+
+    if (!cityChip) return;
+
+    const city = cityChip.dataset.city;
+
+    if (!city) return;
+
+    const firstProduct = PRODUCTS.find(
+        product =>
+            String(product.city || "").toLowerCase() ===
+            city.toLowerCase()
+    );
+
+    if (!firstProduct) return;
+
+    const productCard = document.querySelector(
+        `.product-card[data-id="${firstProduct.id}"]`
+    );
+
+    if (!productCard) return;
+
+    productCard.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+    });
 });

@@ -1203,31 +1203,49 @@ app.post("/api/create-order", async(req, res) => {
                 });
             }
 
-            subtotal +=
-                Number(product.price) *
-                quantity;
+            // =====================================================
+            // GHARSE SNACKS SELLING PRICES
+            // These are the prices charged to customers.
+            // SQL catalog.price is NOT used for checkout.
+            // =====================================================
+
+            const LOCAL_PRICES = {
+                "sev": 69,
+                "spicy parmal / murmure": 69,
+                "spicy potato chips": 35,
+                "banana chips": 35,
+                "bhakarwadi": 89,
+                "chana jor": 45,
+                "besan ladoo": 35
+            };
+
+            const productName = String(product.name || "")
+                .trim()
+                .toLowerCase();
+
+            const sellingPrice = LOCAL_PRICES[productName];
+
+            if (sellingPrice == null) {
+                return res.status(400).json({
+                    success: false,
+                    error: `${product.name} is currently unavailable for online purchase.`
+                });
+            }
+
+            subtotal += sellingPrice * quantity;
 
             orderItems.push({
                 productId: product.id,
                 name: product.name,
-                price: Number(product.price),
+                price: sellingPrice,
                 quantity,
                 categoryId: product.category_id
             });
         }
 
-        const gst =
-            Math.round(
-                subtotal * 0.18
-            );
+        const totalAmount = subtotal;
 
-        const totalAmount =
-            subtotal + gst;
-
-        const amountInPaise =
-            Math.round(
-                totalAmount * 100
-            );
+        const amountInPaise = Math.round(totalAmount * 100);
 
         // =================================================
         // CREATE RAZORPAY ORDER
