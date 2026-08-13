@@ -145,7 +145,7 @@ app.get("/api/products", async(req, res) => {
                 stock,
                 image_url,
                 category_id,
-                category_name AS category
+                category_name
             FROM catalog
             ORDER BY product_id
         `);
