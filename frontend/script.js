@@ -445,16 +445,16 @@ function productImage(product) {
         Number(product.stock) <= 0 ||
         product.price == null
     ) {
-        return "images/Coming Soon.jpeg";
+        return "Images/Coming Soon.jpeg";
     }
 
     const imagePath =
         PRODUCT_IMAGE_FILES[name] ||
         product.image_url ||
-        "images/Coming Soon.jpeg";
+        "Images/Coming Soon.jpeg";
 
     // Make image paths work correctly from the frontend root
-    return imagePath.replace(/^\/?Images\//i, "images/");
+    return imagePath.replace(/^\/?Images\//i, "Images/");
 }
 
 
