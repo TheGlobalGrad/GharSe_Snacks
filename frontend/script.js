@@ -3,8 +3,8 @@
 // =====================================================
 
 const API_BASE =
-    location.hostname === "localhost" ||
-    location.hostname === "127.0.0.1" ?
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1" ?
     "http://127.0.0.1:3001" :
     "https://gharsesnacks.onrender.com";
 
@@ -437,9 +437,7 @@ function escapeHtml(str) {
 
 
 function productImage(product) {
-
-    const name =
-        String(product.name || "")
+    const name = String(product.name || "")
         .trim()
         .toLowerCase();
 
@@ -447,17 +445,16 @@ function productImage(product) {
         Number(product.stock) <= 0 ||
         product.price == null
     ) {
-
-        return "Images/Coming Soon.jpeg";
-
+        return "images/Coming Soon.jpeg";
     }
 
-    return (
+    const imagePath =
         PRODUCT_IMAGE_FILES[name] ||
         product.image_url ||
-        "Logo.jpeg"
-    );
+        "images/Coming Soon.jpeg";
 
+    // Make image paths work correctly from the frontend root
+    return imagePath.replace(/^\/?Images\//i, "images/");
 }
 
 
@@ -747,158 +744,95 @@ function initCarousel() {
 // =====================================================
 
 async function loadProducts() {
-
-    const grid =
-        document.getElementById(
-            "productGrid"
-        );
+    const grid = document.getElementById("productGrid");
 
     if (!grid) return;
 
-
     try {
+        const data = await api("/api/products");
 
-        const data =
-            await api(
-                "/api/products"
-            );
-
-        if (!data ||
-            !Array.isArray(data.products)
-        ) {
-
-            throw new Error(
-                "Invalid product data received from database."
-            );
-
+        if (!data || !Array.isArray(data.products)) {
+            throw new Error("Invalid product data received.");
         }
 
+        const apiProducts = data.products;
 
-        const apiProducts =
-            data.products;
+        const productsByName = new Map(
+            apiProducts.map(product => [
+                String(product.name || "")
+                .trim()
+                .toLowerCase(),
+                product
+            ])
+        );
 
+        PRODUCTS = PRODUCT_CATALOG.map(localProduct => {
 
-        const productsByName =
-            new Map(
-                apiProducts.map(
-                    (product) => [
-
-                        String(
-                            product.name || ""
-                        )
-                        .trim()
-                        .toLowerCase(),
-
-                        product
-
-                    ]
-                )
+            const dbProduct = productsByName.get(
+                String(localProduct.name || "")
+                .trim()
+                .toLowerCase()
             );
 
+            // If database product exists, combine DB data
+            // with the local frontend catalog.
+            if (dbProduct) {
+                return {
+                    ...localProduct,
 
-        PRODUCTS =
-            PRODUCT_CATALOG.map(
-                (localProduct) => {
+                    product_id: String(
+                        dbProduct.product_id ||
+                        dbProduct.id ||
+                        ""
+                    ),
 
-                    const dbProduct =
-                        productsByName.get(
-                            String(
-                                localProduct.name
-                            )
-                            .trim()
-                            .toLowerCase()
-                        );
+                    category_id: String(
+                        dbProduct.category_id ||
+                        ""
+                    ),
 
+                    name: dbProduct.name ||
+                        localProduct.name,
 
-                    if (!dbProduct) {
+                    description: dbProduct.description ||
+                        localProduct.description ||
+                        "",
 
-                        return {
-                            ...localProduct,
+                    price: dbProduct.price == null ?
+                        localProduct.price : Number(dbProduct.price),
 
-                            // Local fallback does NOT
-                            // have database IDs.
-                            product_id: "",
-                            category_id: ""
+                    stock: dbProduct.stock == null ?
+                        localProduct.stock : Number(dbProduct.stock),
 
-                        };
+                    // KEEP LOCAL IMAGE PATH
+                    // because your actual images are in frontend/images
+                    image_url: localProduct.image_url ||
+                        dbProduct.image_url ||
+                        "",
 
-                    }
+                    city: localProduct.city || "",
 
+                    pack_size: localProduct.pack_size ||
+                        dbProduct.pack_size ||
+                        "",
 
-                    return {
+                    category: localProduct.category ||
+                        dbProduct.category ||
+                        ""
+                };
+            }
 
-                        ...localProduct,
+            // If database doesn't contain this product,
+            // STILL SHOW THE LOCAL PRODUCT.
+            return {
+                ...localProduct,
 
-                        // =================================================
-                        // DATABASE IDS
-                        // USE THE ACTUAL SQL COLUMN NAMES
-                        // =================================================
-
-                        product_id: String(
-                            dbProduct.product_id ||
-                            dbProduct.id ||
-                            ""
-                        ),
-
-                        category_id: String(
-                            dbProduct.category_id ||
-                            ""
-                        ),
-
-
-                        // =================================================
-                        // DATABASE PRODUCT DATA
-                        // =================================================
-
-                        name: dbProduct.name ||
-                            localProduct.name,
-
-                        description: dbProduct.description ||
-                            localProduct.description ||
-                            "",
-
-                        price: dbProduct.price == null ?
-                            localProduct.price : Number(
-                                dbProduct.price
-                            ),
-
-                        stock: dbProduct.stock == null ?
-                            localProduct.stock : Number(
-                                dbProduct.stock
-                            ),
-
-                        image_url: localProduct.image_url ||
-                            dbProduct.image_url ||
-                            "",
-
-
-                        // =================================================
-                        // FRONTEND-ONLY INFORMATION
-                        // =================================================
-
-                        city: localProduct.city ||
-                            "",
-
-                        pack_size: localProduct.pack_size ||
-                            dbProduct.pack_size ||
-                            "",
-
-                        category: localProduct.category ||
-                            dbProduct.category ||
-                            ""
-
-                    };
-
-                }
-            );
-
-
-        // =================================================
-        // CITY ORDER
-        // =================================================
+                product_id: "",
+                category_id: ""
+            };
+        });
 
         const cityOrder = [
-
             "Ratlam",
             "Indore",
             "Kochi",
@@ -906,9 +840,7 @@ async function loadProducts() {
             "Bikaner",
             "Jaipur",
             "Ahmedabad"
-
         ];
-
 
         PRODUCTS.sort(
             (a, b) =>
@@ -916,39 +848,30 @@ async function loadProducts() {
             cityOrder.indexOf(b.city)
         );
 
-
     } catch (err) {
 
         console.error(
-            "Failed to load products from database:",
+            "Product API failed. Using local product catalog:",
             err
         );
 
-        PRODUCTS = [];
-
-        grid.innerHTML = `
-            <p class="empty-reviews">
-                Unable to load products from the database.
-            </p>
-        `;
-
+        // IMPORTANT:
+        // NEVER EMPTY THE PRODUCT GRID JUST BECAUSE
+        // THE DATABASE/API HAS A PROBLEM.
+        PRODUCTS = PRODUCT_CATALOG.map(product => ({
+            ...product,
+            product_id: "",
+            category_id: ""
+        }));
     }
-
 
     reconcileCartWithProducts();
 
     renderProducts();
 
-
-    if (
-        typeof loadProductRatings ===
-        "function"
-    ) {
-
+    if (typeof loadProductRatings === "function") {
         loadProductRatings();
-
     }
-
 }
 
 
