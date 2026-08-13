@@ -45,6 +45,22 @@ function query(sql, params = []) {
     });
 }
 
+async function sendEmail(to, subject, html) {
+    if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM || !to) return false;
+    try {
+        const response = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ from: process.env.EMAIL_FROM, to: [to], subject, html })
+        });
+        if (!response.ok) throw new Error(await response.text());
+        return true;
+    } catch (error) {
+        console.error("Email notification failed:", error.message);
+        return false;
+    }
+}
+
 // =====================================================
 // ID GENERATION
 // =====================================================
@@ -139,6 +155,7 @@ app.get("/api/products", async(req, res) => {
         const products = await query(`
             SELECT
                 product_id,
+                product_code,
                 name,
                 description,
                 price,
@@ -165,6 +182,36 @@ app.get("/api/products", async(req, res) => {
             success: false,
             error: "Could not load products."
         });
+    }
+});
+
+// Order/payment history is stored in order_details, items_ordered and payments.
+// The client can use this endpoint to show a signed-in customer's past orders.
+app.get("/api/orders/:userId", async(req, res) => {
+    const userId = Number(req.params.userId);
+    if (!Number.isInteger(userId) || userId < 1) return res.status(400).json({ success: false, error: "Invalid user." });
+    try {
+        const orders = await query(
+            `SELECT od.id, od.order_number, od.total_amount, od.status, od.created_at,
+                    p.payment_ref, p.status AS payment_status, p.razorpay_payment_id
+             FROM order_details od
+             LEFT JOIN payments p ON p.order_id = od.id
+             WHERE od.user_id = ?
+             ORDER BY od.created_at DESC`, [userId]
+        );
+        const orderIds = orders.map((order) => order.id);
+        const items = orderIds.length ? await query(
+            `SELECT io.order_id, io.product_id, io.category_id, io.quantity, io.price, c.name
+             FROM items_ordered io
+             LEFT JOIN catalog c ON c.product_id = io.product_id
+             WHERE io.order_id IN (${orderIds.map(() => "?").join(",")})`, orderIds
+        ) : [];
+        const itemsByOrder = new Map();
+        items.forEach((item) => itemsByOrder.set(item.order_id, [...(itemsByOrder.get(item.order_id) || []), item]));
+        res.json({ success: true, orders: orders.map((order) => ({...order, items: itemsByOrder.get(order.id) || [] })) });
+    } catch (error) {
+        console.error("Failed to load order history:", error.message);
+        res.status(500).json({ success: false, error: "Could not load order history." });
     }
 });
 
@@ -295,7 +342,7 @@ app.get("/api/partners", async(req, res) => {
 
 app.post("/api/subscriptions", async(req, res) => {
 
-    const { email } = req.body;
+    const { email, userId } = req.body;
 
     const cleanEmail =
         typeof email === "string" ?
@@ -312,12 +359,18 @@ app.post("/api/subscriptions", async(req, res) => {
 
     try {
 
+        let validUserId = null;
+        if (Number.isInteger(Number(userId)) && Number(userId) > 0) {
+            const users = await query("SELECT id FROM users WHERE id = ? LIMIT 1", [Number(userId)]);
+            validUserId = users.length ? users[0].id : null;
+        }
+
         const result = await query(
             `
             INSERT INTO subscriptions
-            (email)
-            VALUES (?)
-            `, [cleanEmail]
+            (user_id, email)
+            VALUES (?, ?)
+            `, [validUserId, cleanEmail]
         );
 
         const subscriptionRef =
@@ -335,6 +388,12 @@ app.post("/api/subscriptions", async(req, res) => {
                 subscriptionRef,
                 result.insertId
             ]
+        );
+
+        await sendEmail(
+            cleanEmail,
+            "Welcome to GharSe Snacks updates",
+            "<p>Thank you for subscribing to GharSe Snacks!</p><p>Stay updated on new products, special discounts, and delicious deals from across India.</p>"
         );
 
         res.status(201).json({
@@ -602,6 +661,13 @@ app.post("/api/auth/signup", async(req, res) => {
         });
     }
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim())) {
+        return res.status(400).json({ success: false, error: "Please enter a valid email address." });
+    }
+    if (String(password).length < 8) {
+        return res.status(400).json({ success: false, error: "Password must be at least 8 characters." });
+    }
+
     try {
 
         const cleanEmail =
@@ -660,6 +726,12 @@ app.post("/api/auth/signup", async(req, res) => {
             ]
         );
 
+        await sendEmail(
+            cleanEmail,
+            "Welcome to GharSe Snacks",
+            `<p>Hi ${name.trim()},</p><p>Your GharSe Snacks account has been created successfully.</p><p>Your customer ID is <strong>${customerId}</strong>. We're excited to bring regional snacks, new launches, and offers to you.</p>`
+        );
+
         res.status(201).json({
             success: true,
             message: "Account created successfully!",
@@ -679,6 +751,10 @@ app.post("/api/auth/signup", async(req, res) => {
         console.error("Message:", err.message);
         console.error("SQL Message:", err.sqlMessage);
         console.error("===================================");
+
+        if (err.code === "ER_DUP_ENTRY") {
+            return res.status(409).json({ success: false, error: "An account with this email already exists. Please log in." });
+        }
 
         return res.status(500).json({
             success: false,
@@ -875,248 +951,21 @@ app.post("/api/create-order", async(req, res) => {
         // =================================================
         // GUEST CHECKOUT
         // =================================================
-
+        // Guests never get a users row: their order keeps a NULL user_id and
+        // stores its delivery/contact snapshot on order_details instead.
         if (!userId) {
-
-            if (!customer.name ||
-                !customer.phone ||
-                !customer.address
-            ) {
-
-                return res.status(400).json({
-                    success: false,
-                    error: "Please provide your name, phone number and delivery address."
-                });
+            if (!customer.name || !customer.phone || !customer.address || !customer.place) {
+                return res.status(400).json({ success: false, error: "Please provide your name, phone number, delivery address and city." });
             }
-
-            const guestEmail =
-                customer.email &&
-                typeof customer.email === "string" ?
-                customer.email.trim().toLowerCase() :
-                null;
-
-            // =================================================
-            // EMAIL EXISTS
-            // =================================================
-
-            if (guestEmail) {
-
-                const existingUsers = await query(
-                    `
-                    SELECT
-                        id,
-                        customer_id,
-                        name,
-                        email,
-                        phone,
-                        address,
-                        place,
-                        account_type
-                    FROM users
-                    WHERE LOWER(email) = ?
-                    LIMIT 1
-                    `, [guestEmail]
-                );
-
-                if (existingUsers.length) {
-
-                    const existingUser =
-                        existingUsers[0];
-
-                    userId = existingUser.id;
-                    dbCustomer = existingUser;
-
-                    if (
-                        dbCustomer.account_type === "registered" &&
-                        (!dbCustomer.phone ||
-                            !dbCustomer.address
-                        )
-                    ) {
-
-                        await query(
-                            `
-                            UPDATE users
-                            SET
-                                phone = ?,
-                                address = ?,
-                                place = COALESCE(?, place)
-                            WHERE id = ?
-                            `, [
-                                customer.phone.trim(),
-                                customer.address.trim(),
-                                customer.place ?
-                                customer.place.trim() :
-                                null,
-                                userId
-                            ]
-                        );
-
-                        const refreshed =
-                            await query(
-                                `
-                                SELECT
-                                    id,
-                                    customer_id,
-                                    name,
-                                    email,
-                                    phone,
-                                    address,
-                                    place,
-                                    account_type
-                                FROM users
-                                WHERE id = ?
-                                `, [userId]
-                            );
-
-                        dbCustomer =
-                            refreshed[0];
-                    }
-
-                } else {
-
-                    // =================================================
-                    // CREATE GUEST USER
-                    // =================================================
-
-                    const guestResult =
-                        await query(
-                            `
-                            INSERT INTO users
-                            (
-                                name,
-                                email,
-                                password,
-                                phone,
-                                place,
-                                address,
-                                account_type
-                            )
-                            VALUES (?, ?, ?, ?, ?, ?, 'guest')
-                            `, [
-                                customer.name.trim(),
-                                guestEmail,
-                                null,
-                                customer.phone.trim(),
-                                customer.place ?
-                                customer.place.trim() :
-                                null,
-                                customer.address.trim()
-                            ]
-                        );
-
-                    userId =
-                        guestResult.insertId;
-
-                    const customerId =
-                        generateCustomerId(
-                            customer.place,
-                            userId
-                        );
-
-                    await query(
-                        `
-                        UPDATE users
-                        SET customer_id = ?
-                        WHERE id = ?
-                        `, [
-                            customerId,
-                            userId
-                        ]
-                    );
-
-                    const guestUsers =
-                        await query(
-                            `
-                            SELECT
-                                id,
-                                customer_id,
-                                name,
-                                email,
-                                phone,
-                                address,
-                                place,
-                                account_type
-                            FROM users
-                            WHERE id = ?
-                            `, [userId]
-                        );
-
-                    dbCustomer =
-                        guestUsers[0];
-                }
-
-            } else {
-
-                // =================================================
-                // CREATE GUEST WITHOUT EMAIL
-                // =================================================
-
-                const guestResult =
-                    await query(
-                        `
-                        INSERT INTO users
-                        (
-                            name,
-                            email,
-                            password,
-                            phone,
-                            place,
-                            address,
-                            account_type
-                        )
-                        VALUES (?, ?, ?, ?, ?, ?, 'guest')
-                        `, [
-                            customer.name.trim(),
-                            null,
-                            null,
-                            customer.phone.trim(),
-                            customer.place ?
-                            customer.place.trim() :
-                            null,
-                            customer.address.trim()
-                        ]
-                    );
-
-                userId =
-                    guestResult.insertId;
-
-                const customerId =
-                    generateCustomerId(
-                        customer.place,
-                        userId
-                    );
-
-                await query(
-                    `
-                    UPDATE users
-                    SET customer_id = ?
-                    WHERE id = ?
-                    `, [
-                        customerId,
-                        userId
-                    ]
-                );
-
-                const guestUsers =
-                    await query(
-                        `
-                        SELECT
-                            id,
-                            customer_id,
-                            name,
-                            email,
-                            phone,
-                            address,
-                            place,
-                            account_type
-                        FROM users
-                        WHERE id = ?
-                        `, [userId]
-                    );
-
-                dbCustomer =
-                    guestUsers[0];
-            }
+            dbCustomer = {
+                customer_id: null,
+                name: customer.name.trim(),
+                email: typeof customer.email === "string" && customer.email.trim() ? customer.email.trim().toLowerCase() : null,
+                phone: customer.phone.trim(),
+                address: customer.address.trim(),
+                place: customer.place.trim(),
+                account_type: "guest"
+            };
         }
 
         // =================================================
@@ -1324,14 +1173,15 @@ app.post("/api/create-order", async(req, res) => {
             await query(
                 `
                 INSERT INTO order_details
-                (
-                    user_id,
-                    total_amount,
-                    status
-                )
-                VALUES (?, ?, ?)
+                (user_id, customer_name, customer_email, customer_phone, delivery_address, delivery_place, total_amount, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 `, [
                     userId,
+                    dbCustomer.name,
+                    dbCustomer.email,
+                    dbCustomer.phone,
+                    dbCustomer.address,
+                    dbCustomer.place,
                     totalAmount,
                     "pending"
                 ]
@@ -1615,6 +1465,29 @@ app.post("/api/verify-payment", async(req, res) => {
                     payments[0].order_id
                 ]
             );
+
+            const orderRows = await query(
+                `SELECT od.order_number, od.total_amount, u.name, u.email, u.phone, u.address
+                 FROM order_details od
+                 LEFT JOIN users u ON u.id = od.user_id
+                 WHERE od.id = ?`, [payments[0].order_id]
+            );
+            const orderedItems = await query(
+                `SELECT io.quantity, io.price, c.name, c.category_name
+                 FROM items_ordered io
+                 JOIN catalog c ON c.product_id = io.product_id
+                 WHERE io.order_id = ?`, [payments[0].order_id]
+            );
+            const order = orderRows[0];
+            const itemList = orderedItems.map((item) =>
+                `<li>${item.name} (${item.category_name}) — ${item.quantity} × ₹${Number(item.price).toFixed(2)}</li>`
+            ).join("");
+
+            if (order) {
+                const summary = `<p><strong>Order:</strong> ${order.order_number}</p><ul>${itemList}</ul><p><strong>Total:</strong> ₹${Number(order.total_amount).toFixed(2)}</p>`;
+                await sendEmail(order.email, "Your GharSe Snacks order is confirmed", `<p>Hi ${order.name || "there"},</p><p>Your payment was successful. Thank you for ordering with GharSe Snacks.</p>${summary}<p>We will share delivery updates soon.</p>`);
+                await sendEmail(process.env.ORDER_NOTIFICATION_EMAIL || "gharse.team@gmail.com", `New paid order: ${order.order_number}`, `<p>A customer has completed payment.</p>${summary}<p><strong>Customer:</strong> ${order.name || "Guest"}<br><strong>Phone:</strong> ${order.phone || "Not provided"}<br><strong>Address:</strong> ${order.address || "Not provided"}</p>`);
+            }
         }
 
         res.json({

@@ -3,10 +3,11 @@
 // =====================================================
 
 const API_BASE =
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1" ?
+    window.location.protocol === "file:" ||
+    (window.location.hostname === "localhost" && window.location.port !== "3001") ||
+    (window.location.hostname === "127.0.0.1" && window.location.port !== "3001") ?
     "http://127.0.0.1:3001" :
-    "https://gharsesnacks.onrender.com";
+    "";
 
 
 // =====================================================
@@ -757,78 +758,59 @@ async function loadProducts() {
 
         const apiProducts = data.products;
 
-        const productsByName = new Map(
-            apiProducts.map(product => [
-                String(product.name || "")
-                .trim()
-                .toLowerCase(),
-                product
-            ])
+        const localProductsByName = new Map(
+            PRODUCT_CATALOG.map((product) => [String(product.name || "").trim().toLowerCase(), product])
         );
 
-        PRODUCTS = PRODUCT_CATALOG.map(localProduct => {
-
-            const dbProduct = productsByName.get(
-                String(localProduct.name || "")
-                .trim()
-                .toLowerCase()
-            );
-
-            // If database product exists, combine DB data
-            // with the local frontend catalog.
-            if (dbProduct) {
-                return {
-                    ...localProduct,
-
-                    product_id: String(
-                        dbProduct.product_id ||
-                        dbProduct.id ||
-                        ""
-                    ),
-
-                    category_id: String(
-                        dbProduct.category_id ||
-                        ""
-                    ),
-
-                    name: dbProduct.name ||
-                        localProduct.name,
-
-                    description: dbProduct.description ||
-                        localProduct.description ||
-                        "",
-
-                    price: dbProduct.price == null ?
-                        localProduct.price : Number(dbProduct.price),
-
-                    stock: dbProduct.stock == null ?
-                        localProduct.stock : Number(dbProduct.stock),
-
-                    // KEEP LOCAL IMAGE PATH
-                    // because your actual images are in frontend/images
-                    image_url: localProduct.image_url ||
-                        dbProduct.image_url ||
-                        "",
-
-                    city: localProduct.city || "",
-
-                    pack_size: localProduct.pack_size ||
-                        dbProduct.pack_size ||
-                        "",
-
-                    category: localProduct.category ||
-                        dbProduct.category ||
-                        ""
-                };
-            }
-
-            // If database doesn't contain this product,
-            // STILL SHOW THE LOCAL PRODUCT.
+        // MySQL is the storefront source of truth. A local product only supplies
+        // an image/fallback copy when it has the same name as the catalog product.
+        PRODUCTS = apiProducts.map((dbProduct) => {
+            const localProduct = localProductsByName.get(String(dbProduct.name || "").trim().toLowerCase()) || {};
             return {
                 ...localProduct,
 
-                product_id: "",
-                category_id: ""
+                product_id: String(
+                    dbProduct.product_id ||
+                    dbProduct.id ||
+                    ""
+                ),
+
+                category_id: String(
+                    dbProduct.category_id ||
+                    ""
+                ),
+
+                name: dbProduct.name ||
+                    localProduct.name,
+
+                description: dbProduct.description ||
+                    localProduct.description ||
+                    "",
+
+                price: dbProduct.price == null ?
+                    localProduct.price : Number(dbProduct.price),
+
+                stock: dbProduct.stock == null ?
+                    localProduct.stock : Number(dbProduct.stock),
+
+                // KEEP LOCAL IMAGE PATH
+                // because your actual images are in frontend/images
+                image_url: localProduct.image_url ||
+                    dbProduct.image_url ||
+                    "",
+
+                city: localProduct.city || dbProduct.category_name || "",
+
+                pack_size: localProduct.pack_size ||
+                    dbProduct.pack_size ||
+                    "",
+
+                category: dbProduct.category_name ||
+                    dbProduct.category ||
+                    localProduct.category ||
+                    "",
+
+                product_code: dbProduct.product_code || ""
             };
         });
 
@@ -858,10 +840,18 @@ async function loadProducts() {
         // IMPORTANT:
         // NEVER EMPTY THE PRODUCT GRID JUST BECAUSE
         // THE DATABASE/API HAS A PROBLEM.
-        PRODUCTS = PRODUCT_CATALOG.map(product => ({
+        // Keep each fallback product addressable. Previously every fallback had an
+        // empty ID, causing every "View details" button to open the first product.
+        PRODUCTS = PRODUCT_CATALOG.map((product, index) => ({
             ...product,
-            product_id: "",
-            category_id: ""
+            product_id: product.product_id || `local-${String(product.name || "product")
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, "-")
+                .replace(/(^-|-$)/g, "")}-${index + 1}`,
+            category_id: product.category_id || `LOCAL-${String(product.city || "GSS")
+                .toUpperCase()
+                .replace(/[^A-Z]/g, "")
+                .slice(0, 3) || "GSS"}`
         }));
     }
 
@@ -1679,25 +1669,6 @@ async function openProductDetail(
 
                                     </div>
 
-
-                                    <div
-                                        class="product-price-detail"
-                                        style="
-                                            margin-top: 4px;
-                                            font-size: 0.82rem;
-                                            opacity: 0.7;
-                                        "
-                                    >
-
-                                        ${money(
-                                            product.price
-                                        )}
-                                        for
-                                        ${escapeHtml(
-                                            product.pack_size
-                                        )}
-
-                                    </div>
 
                                 `
 
