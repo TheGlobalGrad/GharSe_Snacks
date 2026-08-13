@@ -2,14 +2,12 @@
 // CONFIG
 // =====================================================
 
-// Backend API base.
-// Local development -> http://127.0.0.1:3001
-// Deployed website -> Render backend
 const API_BASE =
     location.hostname === "localhost" ||
     location.hostname === "127.0.0.1" ?
     "http://127.0.0.1:3001" :
     "https://gharsesnacks.onrender.com";
+
 
 // =====================================================
 // STATE
@@ -17,18 +15,22 @@ const API_BASE =
 
 let PRODUCTS = [];
 let CART = [];
+
 let CURRENT_USER = JSON.parse(
     localStorage.getItem("gharse_user") || "null"
 );
+
 let AUTH_MODE = "login";
 let ACTIVE_PRODUCT_ID = null;
 let PRODUCT_RATINGS = new Map();
+
 
 // =====================================================
 // LOCAL PRODUCT IMAGE CATALOG
 // =====================================================
 
 const PRODUCT_IMAGE_FILES = {
+
     "sev": "Images/Sev.jpeg",
 
     "spicy parmal / murmure": "Images/Spicy Parmal.jpeg",
@@ -70,14 +72,9 @@ const PRODUCT_IMAGE_FILES = {
     "coming soon": "Images/Coming Soon.jpeg"
 };
 
-// =====================================================
-// CITY / CATEGORY CODES
-// =====================================================
-
-
 
 // =====================================================
-// PRODUCT CATALOG
+// LOCAL PRODUCT CATALOG
 // =====================================================
 
 const PRODUCT_CATALOG = [
@@ -190,7 +187,7 @@ const PRODUCT_CATALOG = [
 
 
     // =================================================
-    // AHMEDABAD — COMING SOON
+    // AHMEDABAD
     // =================================================
 
     {
@@ -325,28 +322,19 @@ const PRODUCT_CATALOG = [
         category: "Gujarati Snacks"
     }
 
-].map((product, index) => ({
+];
 
-    ...product,
-
-    // Internal local ID
-    id: -(index + 1),
-
-    // GharSe Snacks category ID
-
-
-    image_url: product.image_url ||
-        "Images/Coming Soon.jpeg"
-
-}));
 
 // =====================================================
 // HELPERS
 // =====================================================
 
 function money(value) {
+
     return `₹${Number(value).toLocaleString("en-IN")}`;
+
 }
+
 
 function showToast(message, isError = false) {
 
@@ -368,10 +356,13 @@ function showToast(message, isError = false) {
 
     showToast._t =
         setTimeout(
-            () => toast.classList.remove("show"),
+            () =>
+            toast.classList.remove("show"),
             3200
         );
+
 }
+
 
 function openModal(id) {
 
@@ -386,7 +377,9 @@ function openModal(id) {
         "aria-hidden",
         "false"
     );
+
 }
+
 
 function closeModal(id) {
 
@@ -401,7 +394,9 @@ function closeModal(id) {
         "aria-hidden",
         "true"
     );
+
 }
+
 
 function showSuccess(title, message) {
 
@@ -422,7 +417,24 @@ function showSuccess(title, message) {
         messageEl.textContent = message;
 
     openModal("successModal");
+
 }
+
+
+function escapeHtml(str) {
+
+    const div =
+        document.createElement("div");
+
+    div.textContent =
+        str == null ?
+        "" :
+        String(str);
+
+    return div.innerHTML;
+
+}
+
 
 function productImage(product) {
 
@@ -435,7 +447,9 @@ function productImage(product) {
         Number(product.stock) <= 0 ||
         product.price == null
     ) {
+
         return "Images/Coming Soon.jpeg";
+
     }
 
     return (
@@ -443,55 +457,79 @@ function productImage(product) {
         product.image_url ||
         "Logo.jpeg"
     );
+
 }
+
 
 function openProfile() {
 
     if (!CURRENT_USER) return;
 
-    document.getElementById(
+    const nameEl =
+        document.getElementById(
             "profileName"
-        ).textContent =
-        CURRENT_USER.name ||
-        "GharSe member";
+        );
+
+    if (nameEl) {
+
+        nameEl.textContent =
+            CURRENT_USER.name ||
+            "GharSe member";
+
+    }
 
     const email =
         document.getElementById(
             "profileEmail"
         );
 
-    email.textContent =
-        CURRENT_USER.email || "";
+    if (email) {
 
-    email.href =
-        `mailto:${CURRENT_USER.email || ""}`;
+        email.textContent =
+            CURRENT_USER.email || "";
 
-    document.getElementById(
+        email.href =
+            `mailto:${CURRENT_USER.email || ""}`;
+
+    }
+
+    const customerId =
+        document.getElementById(
             "profileCustomerId"
-        ).textContent =
-        CURRENT_USER.customerId ?
-        `Member ID: ${CURRENT_USER.customerId}` :
-        "";
+        );
+
+    if (customerId) {
+
+        customerId.textContent =
+            CURRENT_USER.customerId ?
+            `Member ID: ${CURRENT_USER.customerId}` :
+            "";
+
+    }
 
     openModal("profileModal");
+
 }
+
 
 async function api(path, options = {}) {
 
-    const res = await fetch(
-        `${API_BASE}${path}`, {
-            headers: {
-                "Content-Type": "application/json"
-            },
-            ...options
-        }
-    );
+    const res =
+        await fetch(
+            `${API_BASE}${path}`, {
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                ...options
+            }
+        );
 
     let data;
 
     try {
 
-        data = await res.json();
+        data =
+            await res.json();
 
     } catch (e) {
 
@@ -513,7 +551,9 @@ async function api(path, options = {}) {
     }
 
     return data;
+
 }
+
 
 // =====================================================
 // REVEAL ON SCROLL
@@ -559,7 +599,9 @@ function initReveal() {
         (item) =>
         observer.observe(item)
     );
+
 }
+
 
 // =====================================================
 // CAROUSEL
@@ -696,7 +738,9 @@ function initCarousel() {
 
     render();
     restartAutoplay();
+
 }
+
 
 // =====================================================
 // PRODUCTS
@@ -719,21 +763,34 @@ async function loadProducts() {
                 "/api/products"
             );
 
+        if (!data ||
+            !Array.isArray(data.products)
+        ) {
+
+            throw new Error(
+                "Invalid product data received from database."
+            );
+
+        }
+
+
         const apiProducts =
-            data.products || [];
+            data.products;
 
 
         const productsByName =
             new Map(
                 apiProducts.map(
                     (product) => [
+
                         String(
-                            product.name
+                            product.name || ""
                         )
                         .trim()
                         .toLowerCase(),
 
                         product
+
                     ]
                 )
             );
@@ -745,7 +802,9 @@ async function loadProducts() {
 
                     const dbProduct =
                         productsByName.get(
-                            localProduct.name
+                            String(
+                                localProduct.name
+                            )
                             .trim()
                             .toLowerCase()
                         );
@@ -753,37 +812,80 @@ async function loadProducts() {
 
                     if (!dbProduct) {
 
-                        return localProduct;
+                        return {
+                            ...localProduct,
+
+                            // Local fallback does NOT
+                            // have database IDs.
+                            product_id: "",
+                            category_id: ""
+
+                        };
 
                     }
 
 
                     return {
 
-                        ...dbProduct,
-
-                        // LOCAL catalog controls:
-                        // price, city, image, stock,
-                        // and pack size
                         ...localProduct,
 
-                        // DATABASE internal numeric ID
-                        id: Number(
-                            dbProduct.id
+                        // =================================================
+                        // DATABASE IDS
+                        // USE THE ACTUAL SQL COLUMN NAMES
+                        // =================================================
+
+                        product_id: String(
+                            dbProduct.product_id ||
+                            dbProduct.id ||
+                            ""
                         ),
 
-                        category: localProduct.category ||
-                            dbProduct.category,
+                        category_id: String(
+                            dbProduct.category_id ||
+                            ""
+                        ),
 
-                        city: localProduct.city,
+
+                        // =================================================
+                        // DATABASE PRODUCT DATA
+                        // =================================================
+
+                        name: dbProduct.name ||
+                            localProduct.name,
+
+                        description: dbProduct.description ||
+                            localProduct.description ||
+                            "",
+
+                        price: dbProduct.price == null ?
+                            localProduct.price : Number(
+                                dbProduct.price
+                            ),
+
+                        stock: dbProduct.stock == null ?
+                            localProduct.stock : Number(
+                                dbProduct.stock
+                            ),
+
+                        image_url: localProduct.image_url ||
+                            dbProduct.image_url ||
+                            "",
+
+
+                        // =================================================
+                        // FRONTEND-ONLY INFORMATION
+                        // =================================================
+
+                        city: localProduct.city ||
+                            "",
 
                         pack_size: localProduct.pack_size ||
                             dbProduct.pack_size ||
                             "",
 
-                        // Keep our display IDs
-                        category_code: dbProduct.category_id || "",
-                        product_code: dbProduct.product_code || ""
+                        category: localProduct.category ||
+                            dbProduct.category ||
+                            ""
 
                     };
 
@@ -791,8 +893,12 @@ async function loadProducts() {
             );
 
 
-        // Desired product/city order
+        // =================================================
+        // CITY ORDER
+        // =================================================
+
         const cityOrder = [
+
             "Ratlam",
             "Indore",
             "Kochi",
@@ -800,6 +906,7 @@ async function loadProducts() {
             "Bikaner",
             "Jaipur",
             "Ahmedabad"
+
         ];
 
 
@@ -812,15 +919,18 @@ async function loadProducts() {
 
     } catch (err) {
 
-        // If API is unavailable,
-        // use local catalog.
-        PRODUCTS =
-            PRODUCT_CATALOG;
-
-        console.warn(
-            "Product API unavailable; displaying the local product catalog.",
+        console.error(
+            "Failed to load products from database:",
             err
         );
+
+        PRODUCTS = [];
+
+        grid.innerHTML = `
+            <p class="empty-reviews">
+                Unable to load products from the database.
+            </p>
+        `;
 
     }
 
@@ -841,20 +951,133 @@ async function loadProducts() {
 
 }
 
+
+// =====================================================
+// PRODUCT RATINGS
+// =====================================================
+
+async function loadProductRatings() {
+
+    try {
+
+        const data =
+            await api(
+                "/api/reviews"
+            );
+
+        const grouped =
+            new Map();
+
+
+        (data.reviews || [])
+        .forEach((review) => {
+
+            const productId =
+                String(
+                    review.product_id || ""
+                );
+
+
+            if (!productId) return;
+
+
+            const ratings =
+                grouped.get(
+                    productId
+                ) || [];
+
+
+            ratings.push(
+                Number(
+                    review.rating
+                )
+            );
+
+
+            grouped.set(
+                productId,
+                ratings
+            );
+
+        });
+
+
+        PRODUCT_RATINGS =
+            new Map(
+                [...grouped].map(
+                    ([id, ratings]) => [
+
+                        id,
+
+                        {
+                            average: ratings.reduce(
+                                    (
+                                        sum,
+                                        rating
+                                    ) =>
+                                    sum +
+                                    rating,
+                                    0
+                                ) /
+                                ratings.length,
+
+                            count: ratings.length
+                        }
+
+                    ]
+                )
+            );
+
+
+        renderProducts();
+
+    } catch (error) {
+
+        console.warn(
+            "Product ratings are unavailable.",
+            error
+        );
+
+    }
+
+}
+
+
 // =====================================================
 // RECONCILE CART
 // =====================================================
 
 function reconcileCartWithProducts() {
 
+    const productsById =
+        new Map(
+            PRODUCTS.map(
+                (product) => [
+
+                    String(
+                        product.product_id || ""
+                    ),
+
+                    product
+
+                ]
+            )
+        );
+
+
     const productsByName =
         new Map(
             PRODUCTS.map(
                 (product) => [
-                    String(product.name)
+
+                    String(
+                        product.name
+                    )
                     .trim()
                     .toLowerCase(),
+
                     product
+
                 ]
             )
         );
@@ -864,37 +1087,62 @@ function reconcileCartWithProducts() {
         JSON.stringify(CART);
 
 
-    CART = CART
+    CART =
+        CART
         .map((item) => {
 
             const product =
+                productsById.get(
+                    String(
+                        item.product_id || ""
+                    )
+                ) ||
                 productsByName.get(
-                    String(item.name || "")
+                    String(
+                        item.name || ""
+                    )
                     .trim()
                     .toLowerCase()
                 );
 
 
-            return product &&
-                Number(product.id) > 0
+            if (!product ||
+                !product.product_id
+            ) {
 
-                ?
-                {
-                    ...item,
-                    id: product.id,
-                    name: product.name,
-                    price: Number(
-                        product.price
-                    ),
-                    pack_size: product.pack_size || ""
-                }
+                return null;
 
-            : item;
+            }
+
+
+            return {
+
+                ...item,
+
+                product_id: String(
+                    product.product_id
+                ),
+
+                category_id: String(
+                    product.category_id ||
+                    ""
+                ),
+
+                name: product.name,
+
+                price: Number(
+                    product.price
+                ),
+
+                pack_size: product.pack_size ||
+                    ""
+
+            };
 
         })
         .filter(
             (item) =>
-            Number(item.id) > 0 &&
+            item &&
             Number(item.quantity) > 0
         );
 
@@ -910,7 +1158,9 @@ function reconcileCartWithProducts() {
 
 
     renderCart();
+
 }
+
 
 // =====================================================
 // RENDER PRODUCTS
@@ -929,9 +1179,11 @@ function renderProducts() {
     if (!PRODUCTS.length) {
 
         grid.innerHTML =
-            `<p class="empty-reviews">
+            `
+            <p class="empty-reviews">
                 No snacks available yet. Check back soon!
-            </p>`;
+            </p>
+            `;
 
         return;
 
@@ -939,11 +1191,18 @@ function renderProducts() {
 
 
     grid.innerHTML =
-        PRODUCTS.map((p) => {
+        PRODUCTS
+        .map((p) => {
+
+            const productId =
+                String(
+                    p.product_id || ""
+                );
+
 
             const rating =
                 PRODUCT_RATINGS.get(
-                    Number(p.id)
+                    productId
                 );
 
 
@@ -955,188 +1214,172 @@ function renderProducts() {
 
             return `
 
-                <article
-                    class="product-card reveal"
-                    data-id="${p.id}"
-                >
-
-                    <div class="product-image-wrap">
-
-                        <img
-                            src="${escapeHtml(
-                                productImage(p)
-                            )}"
-                            alt="${escapeHtml(
-                                p.name
-                            )}"
-                            loading="lazy"
-                        />
-
-                    </div>
-
-
-                    <div class="product-top">
-
-                        <div>
-
-                            <h3>
-                                ${escapeHtml(
-                                    p.name
-                                )}
-                            </h3>
-
-                            <small class="product-city">
-                                ${escapeHtml(
-                                    p.city || ""
-                                )}
-                            </small>
-
-                        </div>
-
-
-                        <span class="product-price">
-
-                            ${
-                                p.price != null &&
-                                Number(p.price) > 0
-
-                                    ? money(p.price)
-
-                                    : "Coming soon"
-                            }
-
-                        </span>
-
-                    </div>
-
-
-                    <p>
-                        ${escapeHtml(
-                            p.description || ""
-                        )}
-                    </p>
-
-
-                    <button
-                        class="product-rating text-link"
-                        data-view="${p.id}"
-                        type="button"
-                        aria-label="Read or write a review for ${escapeHtml(
-                            p.name
-                        )}"
+                    <article
+                        class="product-card reveal"
+                        data-id="${escapeHtml(productId)}"
                     >
 
-                        ★★★★★
+                        <div class="product-image-wrap">
 
-                        <span>
-                            ${ratingText}
-                        </span>
+                            <img
+                                src="${escapeHtml(
+                                    productImage(p)
+                                )}"
+                                alt="${escapeHtml(
+                                    p.name
+                                )}"
+                                loading="lazy"
+                            />
 
-                    </button>
+                        </div>
 
 
-                    <div class="product-bottom">
+                        <div class="product-top">
 
-                        <span
-                            class="product-state ${
-                                p.stock > 0
-                                    ? ""
-                                    : "coming-soon"
-                            }"
-                        >
+                            <div>
 
-                            ${
-                                p.stock > 0
-                                    ? "In stock"
-                                    : "Will be available soon"
-                            }
+                                <h3>
+                                    ${escapeHtml(
+                                        p.name
+                                    )}
+                                </h3>
 
-                        </span>
+                                <small class="product-city">
+                                    ${escapeHtml(
+                                        p.city || ""
+                                    )}
+                                </small>
+
+                            </div>
+
+
+                            <span class="product-price">
+
+                                ${
+                                    p.price != null &&
+                                    Number(p.price) > 0
+                                        ? money(p.price)
+                                        : "Coming soon"
+                                }
+
+                            </span>
+
+                        </div>
+
+
+                        <p>
+                            ${escapeHtml(
+                                p.description || ""
+                            )}
+                        </p>
 
 
                         <button
-                            class="product-view-btn text-link"
-                            data-view="${p.id}"
+                            class="product-rating text-link"
+                            data-view="${escapeHtml(productId)}"
                             type="button"
-                        >
-                            View details
-                        </button>
-
-                    </div>
-
-
-                    <div class="product-actions">
-
-                        <div
-                            class="qty-control"
-                            data-qty-for="${p.id}"
+                            aria-label="Read or write a review for ${escapeHtml(
+                                p.name
+                            )}"
                         >
 
-                            <button
-                                type="button"
-                                data-qty="dec"
-                            >
-                                −
-                            </button>
+                            ★★★★★
 
-                            <span data-qty-value>
-                                0
+                            <span>
+                                ${ratingText}
                             </span>
 
-                            <button
-                                type="button"
-                                data-qty="inc"
+                        </button>
+
+
+                        <div class="product-bottom">
+
+                            <span
+                                class="product-state ${
+                                    Number(p.stock) > 0
+                                        ? ""
+                                        : "coming-soon"
+                                }"
                             >
-                                +
+
+                                ${
+                                    Number(p.stock) > 0
+                                        ? "In stock"
+                                        : "Will be available soon"
+                                }
+
+                            </span>
+
+
+                            <button
+                                class="product-view-btn text-link"
+                                data-view="${escapeHtml(productId)}"
+                                type="button"
+                            >
+                                View details
                             </button>
 
                         </div>
 
 
-                        <button
-                            class="btn btn-primary"
-                            type="button"
-                            data-add-to-cart="${p.id}"
-                        >
+                        <div class="product-actions">
 
-                            ${
-                                p.stock > 0
-                                    ? "Add to cart"
-                                    : "Notify me"
-                            }
+                            <div
+                                class="qty-control"
+                                data-qty-for="${escapeHtml(productId)}"
+                            >
 
-                        </button>
+                                <button
+                                    type="button"
+                                    data-qty="dec"
+                                >
+                                    −
+                                </button>
 
-                    </div>
+                                <span data-qty-value>
+                                    0
+                                </span>
 
-                </article>
+                                <button
+                                    type="button"
+                                    data-qty="inc"
+                                >
+                                    +
+                                </button>
 
-            `;
+                            </div>
 
-        }).join("");
+
+                            <button
+                                class="btn btn-primary"
+                                type="button"
+                                data-add-to-cart="${escapeHtml(productId)}"
+                            >
+
+                                ${
+                                    Number(p.stock) > 0
+                                        ? "Add to cart"
+                                        : "Notify me"
+                                }
+
+                            </button>
+
+                        </div>
+
+                    </article>
+
+                `;
+
+        })
+        .join("");
 
 
     requestAnimationFrame(
         initReveal
     );
+
 }
 
-// =====================================================
-// ESCAPE HTML
-// =====================================================
-
-function escapeHtml(str) {
-
-    const div =
-        document.createElement("div");
-
-    div.textContent =
-        str == null ?
-        "" :
-        String(str);
-
-    return div.innerHTML;
-}
 
 // =====================================================
 // QUANTITY
@@ -1144,12 +1387,20 @@ function escapeHtml(str) {
 
 function getQtyFor(productId) {
 
-    const el =
+    const id =
+        String(productId);
+
+
+    const elements =
         Array.from(
             document.querySelectorAll(
-                `[data-qty-for="${productId}"] [data-qty-value]`
+                `[data-qty-for="${CSS.escape(id)}"] [data-qty-value]`
             )
-        ).find(
+        );
+
+
+    const el =
+        elements.find(
             (item) =>
             item.offsetParent !== null
         );
@@ -1158,7 +1409,9 @@ function getQtyFor(productId) {
     return el ?
         Number(el.textContent) :
         0;
+
 }
+
 
 // =====================================================
 // PRODUCT BUTTON CLICKS
@@ -1181,10 +1434,16 @@ document.addEventListener(
                     "[data-qty-for]"
                 );
 
+            if (!wrap) return;
+
+
             const valueEl =
                 wrap.querySelector(
                     "[data-qty-value]"
                 );
+
+
+            if (!valueEl) return;
 
 
             let value =
@@ -1209,6 +1468,7 @@ document.addEventListener(
             valueEl.textContent =
                 value;
 
+
             return;
 
         }
@@ -1222,13 +1482,16 @@ document.addEventListener(
 
         if (addBtn) {
 
-            const id =
-                Number(
+            const productId =
+                String(
                     addBtn.dataset.addToCart
                 );
 
+
             const quantity =
-                getQtyFor(id);
+                getQtyFor(
+                    productId
+                );
 
 
             if (quantity < 1) {
@@ -1244,9 +1507,10 @@ document.addEventListener(
 
 
             addToCart(
-                id,
+                productId,
                 quantity
             );
+
 
             return;
 
@@ -1262,7 +1526,7 @@ document.addEventListener(
         if (viewBtn) {
 
             openProductDetail(
-                Number(
+                String(
                     viewBtn.dataset.view
                 )
             );
@@ -1272,46 +1536,58 @@ document.addEventListener(
     }
 );
 
+
 // =====================================================
-// PRODUCT DETAIL + REVIEWS
+// PRODUCT DETAIL
 // =====================================================
 
 async function openProductDetail(
     productId
 ) {
 
+    const id =
+        String(productId);
+
+
     const product =
         PRODUCTS.find(
             (p) =>
-            Number(p.id) ===
-            Number(productId)
+            String(
+                p.product_id || ""
+            ) === id
         );
 
 
-    if (!product) return;
+    if (!product) {
+
+        console.error(
+            "Product not found:",
+            id
+        );
+
+        return;
+
+    }
 
 
     ACTIVE_PRODUCT_ID =
-        productId;
+        id;
 
 
     const rating =
         PRODUCT_RATINGS.get(
-            Number(product.id)
+            id
         );
 
 
     const ratingText =
-        rating
-
-        ?
+        rating ?
         `${rating.average.toFixed(1)} / 5 (${rating.count} review${
                 rating.count === 1
                     ? ""
                     : "s"
-            })`
-
-    : "No ratings yet";
+            })` :
+        "No ratings yet";
 
 
     const available =
@@ -1343,6 +1619,7 @@ async function openProductDetail(
                     )}"
                 />
 
+
                 <span
                     class="detail-availability ${
                         available
@@ -1371,11 +1648,6 @@ async function openProductDetail(
                 </h2>
 
 
-                <!--
-                    Category and Product IDs are
-                    intentionally smaller.
-                -->
-
                 <div class="detail-meta">
 
                     <span>
@@ -1394,11 +1666,13 @@ async function openProductDetail(
                             font-weight: 500;
                         "
                     >
+
                         Category ID:
                         ${escapeHtml(
-                            product.category_code ||
+                            product.category_id ||
                             "Unavailable"
                         )}
+
                     </span>
 
 
@@ -1410,13 +1684,13 @@ async function openProductDetail(
                             font-weight: 500;
                         "
                     >
+
                         Product ID:
                         ${escapeHtml(
-                            product.product_code ||
-                            `GSS-PRODUCT-${String(
-                                product.id
-                            ).padStart(6, "0")}`
+                            product.product_id ||
+                            "Unavailable"
                         )}
+
                     </span>
 
                 </div>
@@ -1439,6 +1713,7 @@ async function openProductDetail(
                         <span class="detail-label">
                             Price
                         </span>
+
 
                         <strong
                             class="product-detail-price"
@@ -1474,10 +1749,13 @@ async function openProductDetail(
                                             opacity: 0.8;
                                         "
                                     >
+
                                         ${escapeHtml(
                                             product.pack_size
                                         )}
+
                                     </div>
+
 
                                     <div
                                         class="product-price-detail"
@@ -1487,11 +1765,15 @@ async function openProductDetail(
                                             opacity: 0.7;
                                         "
                                     >
+
                                         ${money(
                                             product.price
-                                        )} for ${escapeHtml(
+                                        )}
+                                        for
+                                        ${escapeHtml(
                                             product.pack_size
                                         )}
+
                                     </div>
 
                                 `
@@ -1504,7 +1786,9 @@ async function openProductDetail(
 
                     <div
                         class="qty-control"
-                        data-qty-for="${product.id}"
+                        data-qty-for="${escapeHtml(
+                            product.product_id
+                        )}"
                     >
 
                         <button
@@ -1515,9 +1799,11 @@ async function openProductDetail(
                             -
                         </button>
 
+
                         <span data-qty-value>
                             1
                         </span>
+
 
                         <button
                             type="button"
@@ -1533,7 +1819,9 @@ async function openProductDetail(
                     <button
                         class="btn btn-primary"
                         type="button"
-                        data-add-to-cart="${product.id}"
+                        data-add-to-cart="${escapeHtml(
+                            product.product_id
+                        )}"
                     >
 
                         ${
@@ -1599,9 +1887,11 @@ async function openProductDetail(
                                 Bought or sampled?
                             </option>
 
+
                             <option value="Bought from GharSe Snacks">
                                 Bought from GharSe Snacks
                             </option>
+
 
                             <option value="Tried a sample">
                                 Tried a sample
@@ -1617,6 +1907,7 @@ async function openProductDetail(
                             <legend>
                                 Your rating
                             </legend>
+
 
                             ${
                                 [1, 2, 3, 4, 5]
@@ -1682,9 +1973,11 @@ async function openProductDetail(
 
 
     loadReviews(
-        productId
+        id
     );
+
 }
+
 
 // =====================================================
 // LOAD REVIEWS
@@ -1703,6 +1996,10 @@ async function loadReviews(
     if (!list) return;
 
 
+    const id =
+        String(productId);
+
+
     try {
 
         const data =
@@ -1715,19 +2012,20 @@ async function loadReviews(
             (data.reviews || [])
                 .filter(
                     (r) =>
-                        Number(
-                            r.product_id
-                        ) ===
-                        Number(productId)
+                        String(
+                            r.product_id || ""
+                        ) === id
                 );
 
 
         if (!reviews.length) {
 
             list.innerHTML =
-                `<p class="empty-reviews">
+                `
+                <p class="empty-reviews">
                     No reviews yet — be the first to share one!
-                </p>`;
+                </p>
+                `;
 
             return;
 
@@ -1749,6 +2047,7 @@ async function loadReviews(
                                     )}
                                 </strong>
 
+
                                 <span class="review-type">
                                     ${escapeHtml(
                                         r.review_type
@@ -1759,13 +2058,23 @@ async function loadReviews(
 
 
                             <p>
+
                                 ${"★".repeat(
-                                    Number(r.rating)
+                                    Number(
+                                        r.rating
+                                    )
                                 )}
+
                                 ${"☆".repeat(
-                                    5 -
-                                    Number(r.rating)
+                                    Math.max(
+                                        0,
+                                        5 -
+                                        Number(
+                                            r.rating
+                                        )
+                                    )
                                 )}
+
                             </p>
 
 
@@ -1777,11 +2086,13 @@ async function loadReviews(
 
 
                             <small>
+
                                 ${new Date(
                                     r.created_at
                                 ).toLocaleDateString(
                                     "en-IN"
                                 )}
+
                             </small>
 
                         </div>
@@ -1793,13 +2104,23 @@ async function loadReviews(
 
     } catch (err) {
 
+        console.error(
+            "Could not load reviews:",
+            err
+        );
+
+
         list.innerHTML =
-            `<p class="empty-reviews">
+            `
+            <p class="empty-reviews">
                 Could not load reviews.
-            </p>`;
+            </p>
+            `;
 
     }
+
 }
+
 
 // =====================================================
 // REVIEW SUBMISSION
@@ -1813,7 +2134,9 @@ document.addEventListener(
             e.target.id !==
             "reviewForm"
         ) {
+
             return;
+
         }
 
 
@@ -1822,6 +2145,7 @@ document.addEventListener(
 
         const form =
             e.target;
+
 
         const formData =
             new FormData(form);
@@ -1834,38 +2158,40 @@ document.addEventListener(
                 {
                     method: "POST",
 
-                    body: JSON.stringify({
+                    body:
+                        JSON.stringify({
 
-                        productId:
-                            ACTIVE_PRODUCT_ID,
+                            productId:
+                                ACTIVE_PRODUCT_ID,
 
-                        userId:
-                            CURRENT_USER?.id ||
-                            null,
+                            userId:
+                                CURRENT_USER?.id ||
+                                null,
 
-                        reviewer:
-                            formData.get(
-                                "reviewer"
-                            ),
-
-                        reviewType:
-                            formData.get(
-                                "reviewType"
-                            ),
-
-                        rating:
-                            Number(
+                            reviewer:
                                 formData.get(
-                                    "rating"
+                                    "reviewer"
+                                ),
+
+                            reviewType:
+                                formData.get(
+                                    "reviewType"
+                                ),
+
+                            rating:
+                                Number(
+                                    formData.get(
+                                        "rating"
+                                    )
+                                ),
+
+                            comment:
+                                formData.get(
+                                    "comment"
                                 )
-                            ),
 
-                        comment:
-                            formData.get(
-                                "comment"
-                            )
+                        })
 
-                    })
                 }
             );
 
@@ -1895,6 +2221,7 @@ document.addEventListener(
     }
 );
 
+
 // =====================================================
 // CART
 // =====================================================
@@ -1905,47 +2232,82 @@ function persistCart() {
         "gharse_cart",
         JSON.stringify(CART)
     );
+
 }
+
 
 function loadCart() {
 
-    CART =
-        JSON.parse(
-            localStorage.getItem(
-                "gharse_cart"
-            ) || "[]"
-        );
+    try {
+
+        CART =
+            JSON.parse(
+                localStorage.getItem(
+                    "gharse_cart"
+                ) || "[]"
+            );
+
+        if (!Array.isArray(CART)) {
+
+            CART = [];
+
+        }
+
+    } catch (error) {
+
+        CART = [];
+
+    }
+
 
     renderCart();
+
 }
+
 
 async function addToCart(
     productId,
     quantity
 ) {
 
+    const id =
+        String(productId);
+
+
     const product =
         PRODUCTS.find(
             (p) =>
-                Number(p.id) ===
-                Number(productId)
+                String(
+                    p.product_id || ""
+                ) === id
         );
 
 
-    if (!product) return;
+    if (!product) {
+
+        showToast(
+            "Product could not be found.",
+            true
+        );
+
+        return;
+
+    }
 
 
     if (
         !Number.isInteger(quantity) ||
         quantity < 1
     ) {
+
         return;
+
     }
 
 
-    // =============================================
+    // =================================================
     // COMING SOON / NOTIFY ME
-    // =============================================
+    // =================================================
 
     if (
         Number(product.stock) <= 0
@@ -1970,14 +2332,19 @@ async function addToCart(
                 {
                     method: "POST",
 
-                    body: JSON.stringify({
+                    body:
+                        JSON.stringify({
 
-                        productId,
-                        userId:
-                            CURRENT_USER.id,
-                        quantity
+                            productId:
+                                id,
 
-                    })
+                            userId:
+                                CURRENT_USER.id,
+
+                            quantity
+
+                        })
+
                 }
             );
 
@@ -2002,15 +2369,16 @@ async function addToCart(
     }
 
 
-    // =============================================
+    // =================================================
     // ADD TO CART
-    // =============================================
+    // =================================================
 
     const existing =
         CART.find(
             (item) =>
-                Number(item.id) ===
-                Number(productId)
+                String(
+                    item.product_id || ""
+                ) === id
         );
 
 
@@ -2019,24 +2387,36 @@ async function addToCart(
         existing.quantity +=
             quantity;
 
-        // Keep pack size synchronized
         existing.pack_size =
             product.pack_size || "";
+
+        existing.category_id =
+            product.category_id || "";
 
     } else {
 
         CART.push({
 
-            id: productId,
+            product_id:
+                id,
+
+            category_id:
+                String(
+                    product.category_id ||
+                    ""
+                ),
 
             name:
                 product.name,
 
             price:
-                Number(product.price),
+                Number(
+                    product.price
+                ),
 
             pack_size:
-                product.pack_size || "",
+                product.pack_size ||
+                "",
 
             quantity
 
@@ -2058,7 +2438,7 @@ async function addToCart(
     const qtyValue =
         Array.from(
             document.querySelectorAll(
-                `[data-qty-for="${productId}"] [data-qty-value]`
+                `[data-qty-for="${CSS.escape(id)}"] [data-qty-value]`
             )
         ).find(
             (item) =>
@@ -2072,23 +2452,33 @@ async function addToCart(
             "0";
 
     }
+
 }
+
 
 function removeFromCart(
     productId
 ) {
 
+    const id =
+        String(productId);
+
+
     CART =
         CART.filter(
             (item) =>
-                Number(item.id) !==
-                Number(productId)
+                String(
+                    item.product_id || ""
+                ) !== id
         );
+
 
     persistCart();
 
     renderCart();
+
 }
+
 
 // =====================================================
 // RENDER CART
@@ -2111,7 +2501,9 @@ function renderCart() {
         CART.reduce(
             (sum, item) =>
                 sum +
-                Number(item.quantity),
+                Number(
+                    item.quantity
+                ),
             0
         );
 
@@ -2125,7 +2517,9 @@ function renderCart() {
 
 
     document
-        .getElementById("cartTrigger")
+        .getElementById(
+            "cartTrigger"
+        )
         ?.setAttribute(
             "aria-label",
             `Shopping cart, ${totalItems} ${
@@ -2141,77 +2535,93 @@ function renderCart() {
         if (!CART.length) {
 
             itemsEl.innerHTML =
-                `<p class="empty-reviews">
+                `
+                <p class="empty-reviews">
                     Your cart is empty. Add some snacks to get started!
-                </p>`;
+                </p>
+                `;
 
         } else {
 
             itemsEl.innerHTML =
-                CART.map(
-                    (item) => `
+                CART
+                    .map(
+                        (item) => `
 
-                        <div class="cart-item">
+                            <div class="cart-item">
 
-                            <div>
+                                <div>
 
-                                <h4>
-                                    ${escapeHtml(
-                                        item.name
-                                    )}
-                                </h4>
+                                    <h4>
+                                        ${escapeHtml(
+                                            item.name
+                                        )}
+                                    </h4>
 
-                                <p>
-                                    ${money(
-                                        item.price
-                                    )}
-                                    ×
-                                    ${item.quantity}
 
-                                    ${
-                                        item.pack_size
-                                            ? ` · ${escapeHtml(
-                                                item.pack_size
-                                            )} each`
-                                            : ""
-                                    }
-                                </p>
+                                    <p>
+
+                                        ${money(
+                                            item.price
+                                        )}
+
+                                        ×
+
+                                        ${item.quantity}
+
+                                        ${
+                                            item.pack_size
+                                                ? ` · ${escapeHtml(
+                                                    item.pack_size
+                                                )} each`
+                                                : ""
+                                        }
+
+                                    </p>
+
+                                </div>
+
+
+                                <div class="qty-control">
+
+                                    <strong>
+
+                                        ${money(
+                                            Number(
+                                                item.price
+                                            ) *
+                                            Number(
+                                                item.quantity
+                                            )
+                                        )}
+
+                                    </strong>
+
+
+                                    <button
+                                        type="button"
+                                        data-remove-from-cart="${escapeHtml(
+                                            String(
+                                                item.product_id
+                                            )
+                                        )}"
+                                        aria-label="Remove item"
+                                    >
+                                        ×
+                                    </button>
+
+                                </div>
 
                             </div>
 
-
-                            <div class="qty-control">
-
-                                <strong>
-                                    ${money(
-                                        item.price *
-                                        item.quantity
-                                    )}
-                                </strong>
-
-                                <button
-                                    type="button"
-                                    data-remove-from-cart="${item.id}"
-                                    aria-label="Remove item"
-                                >
-                                    ×
-                                </button>
-
-                            </div>
-
-                        </div>
-
-                    `
-                ).join("");
+                        `
+                    )
+                    .join("");
 
         }
 
     }
 
-
-    // =============================================
-    // GST REMOVED
-    // =============================================
 
     const subtotal =
         CART.reduce(
@@ -2255,6 +2665,7 @@ function renderCart() {
 
 }
 
+
 // =====================================================
 // REMOVE CART ITEM
 // =====================================================
@@ -2272,16 +2683,15 @@ document.addEventListener(
         if (removeBtn) {
 
             removeFromCart(
-                Number(
-                    removeBtn.dataset
-                        .removeFromCart
-                )
+                removeBtn.dataset
+                    .removeFromCart
             );
 
         }
 
     }
 );
+
 
 // =====================================================
 // CHECKOUT — RAZORPAY
@@ -2295,7 +2705,9 @@ document.addEventListener(
             e.target.id !==
             "checkoutForm"
         ) {
+
             return;
+
         }
 
 
@@ -2344,61 +2756,69 @@ document.addEventListener(
                     {
                         method: "POST",
 
-                        body: JSON.stringify({
+                        body:
+                            JSON.stringify({
 
-                            customer: {
+                                customer: {
 
-                                userId:
-                                    CURRENT_USER
-                                        ? CURRENT_USER.id
-                                        : null,
+                                    userId:
+                                        CURRENT_USER
+                                            ? CURRENT_USER.id
+                                            : null,
 
-                                name:
-                                    formData.get(
-                                        "name"
-                                    ),
+                                    name:
+                                        formData.get(
+                                            "name"
+                                        ),
 
-                                email:
-                                    formData.get(
-                                        "email"
-                                    ),
+                                    email:
+                                        formData.get(
+                                            "email"
+                                        ),
 
-                                phone:
-                                    formData.get(
-                                        "phone"
-                                    ),
+                                    phone:
+                                        formData.get(
+                                            "phone"
+                                        ),
 
-                                address:
-                                    formData.get(
-                                        "address"
-                                    ),
+                                    address:
+                                        formData.get(
+                                            "address"
+                                        ),
 
-                                place:
-                                    formData.get(
-                                        "place"
-                                    ),
+                                    place:
+                                        formData.get(
+                                            "place"
+                                        ),
 
-                                state:
-                                    formData.get(
-                                        "state"
+                                    state:
+                                        formData.get(
+                                            "state"
+                                        )
+
+                                },
+
+
+                                items:
+                                    CART.map(
+                                        (item) => ({
+
+                                            id:
+                                                item.product_id,
+
+                                            product_id:
+                                                item.product_id,
+
+                                            category_id:
+                                                item.category_id,
+
+                                            quantity:
+                                                item.quantity
+
+                                        })
                                     )
 
-                            },
-
-                            items:
-                                CART.map(
-                                    (item) => ({
-
-                                        id:
-                                            item.id,
-
-                                        quantity:
-                                            item.quantity
-
-                                    })
-                                )
-
-                        })
+                            })
 
                     }
                 );
@@ -2451,6 +2871,7 @@ document.addEventListener(
 
                             renderCart();
 
+
                             closeModal(
                                 "cartModal"
                             );
@@ -2478,7 +2899,10 @@ document.addEventListener(
 
 
                 theme: {
-                    color: "#a4100d"
+
+                    color:
+                        "#a4100d"
+
                 }
 
             };
@@ -2513,6 +2937,7 @@ document.addEventListener(
 
     }
 );
+
 
 // =====================================================
 // AUTH
@@ -2621,7 +3046,9 @@ function setAuthMode(mode) {
                 "Create account";
 
     }
+
 }
+
 
 // =====================================================
 // AUTH BUTTON
@@ -2646,12 +3073,14 @@ document
                 "login"
             );
 
+
             openModal(
                 "authModal"
             );
 
         }
     );
+
 
 // =====================================================
 // STAR RATING
@@ -2666,7 +3095,9 @@ document.addEventListener(
                 'input[name="rating"]'
             )
         ) {
+
             return;
+
         }
 
 
@@ -2707,6 +3138,7 @@ document.addEventListener(
     }
 );
 
+
 // =====================================================
 // LOGOUT
 // =====================================================
@@ -2722,13 +3154,16 @@ document
             CURRENT_USER =
                 null;
 
+
             localStorage.removeItem(
                 "gharse_user"
             );
 
+
             closeModal(
                 "profileModal"
             );
+
 
             showToast(
                 "You have been logged out."
@@ -2736,6 +3171,7 @@ document
 
         }
     );
+
 
 // =====================================================
 // TOGGLE AUTH MODE
@@ -2757,6 +3193,7 @@ document
 
         }
     );
+
 
 // =====================================================
 // LOGIN / SIGNUP
@@ -2796,9 +3233,7 @@ document
 
                 const endpoint =
                     AUTH_MODE === "signup"
-
                         ? "/api/auth/signup"
-
                         : "/api/auth/login";
 
 
@@ -2864,10 +3299,12 @@ document
                         endpoint,
                         {
                             method: "POST",
+
                             body:
                                 JSON.stringify(
                                     payload
                                 )
+
                         }
                     );
 
@@ -2881,9 +3318,11 @@ document
                         "Account created! Please log in."
                     );
 
+
                     setAuthMode(
                         "login"
                     );
+
 
                     form.reset();
 
@@ -2934,6 +3373,7 @@ document
 
         }
     );
+
 
 // =====================================================
 // PARTNER FORM
@@ -3038,6 +3478,7 @@ document
         }
     );
 
+
 // =====================================================
 // SUBSCRIBE FORM
 // =====================================================
@@ -3126,6 +3567,7 @@ document
         }
     );
 
+
 // =====================================================
 // MODAL WIRING
 // =====================================================
@@ -3142,6 +3584,7 @@ document
             )
     );
 
+
 document
     .getElementById(
         "forgotPasswordTrigger"
@@ -3154,12 +3597,14 @@ document
                 "authModal"
             );
 
+
             openModal(
                 "resetPasswordModal"
             );
 
         }
     );
+
 
 // =====================================================
 // PASSWORD RESET REQUEST
@@ -3247,6 +3692,7 @@ document
         }
     );
 
+
 // =====================================================
 // PASSWORD RESET CONFIRM
 // =====================================================
@@ -3318,6 +3764,7 @@ document
         }
     );
 
+
 // =====================================================
 // SUGGESTIONS
 // =====================================================
@@ -3333,6 +3780,7 @@ document
                 "suggestionModal"
             )
     );
+
 
 document
     .getElementById(
@@ -3414,6 +3862,7 @@ document
         }
     );
 
+
 // =====================================================
 // CLOSE MODALS
 // =====================================================
@@ -3460,6 +3909,7 @@ document.addEventListener(
     }
 );
 
+
 // =====================================================
 // ESCAPE KEY
 // =====================================================
@@ -3494,6 +3944,7 @@ document.addEventListener(
     }
 );
 
+
 // =====================================================
 // INIT
 // =====================================================
@@ -3516,6 +3967,7 @@ document.addEventListener(
 
     }
 );
+
 
 // =====================================================
 // CITY CLICK → SCROLL TO FIRST PRODUCT
@@ -3556,7 +4008,11 @@ document.addEventListener(
 
         const productCard =
             document.querySelector(
-                `.product-card[data-id="${firstProduct.id}"]`
+                `.product-card[data-id="${CSS.escape(
+                    String(
+                        firstProduct.product_id
+                    )
+                )}"]`
             );
 
 
@@ -3564,8 +4020,11 @@ document.addEventListener(
 
 
         productCard.scrollIntoView({
+
             behavior: "smooth",
+
             block: "center"
+
         });
 
     }

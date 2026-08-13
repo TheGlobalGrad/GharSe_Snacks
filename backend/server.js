@@ -50,8 +50,6 @@ function query(sql, params = []) {
 // =====================================================
 
 // Customer ID
-// Example: GSS-MH-000001
-// Customer ID
 // Example: GSS-MUM-000001
 function generateCustomerId(place, numericId) {
     const padded = String(numericId).padStart(6, "0");
@@ -66,8 +64,6 @@ function generateCustomerId(place, numericId) {
 }
 
 // Order ID
-// Example: GSS-MH-ORD-000001
-// Order ID
 // Example: GSS-MUM-ORD-000001
 function generateOrderId(place, numericId) {
     const padded = String(numericId).padStart(6, "0");
@@ -80,6 +76,7 @@ function generateOrderId(place, numericId) {
 
     return `GSS-${cleanCity}-ORD-${padded}`;
 }
+
 // Generic reference
 // Example: GSS-PAY-000001
 // Example: GSS-REV-000001
@@ -92,15 +89,6 @@ function generateReferenceId(prefix, numericId) {
 }
 
 // =====================================================
-// STATE CODE HELPER
-// =====================================================
-
-
-// =====================================================
-// HOME
-// =====================================================
-
-// =====================================================
 // SERVE FRONTEND
 // =====================================================
 
@@ -111,7 +99,6 @@ app.use(express.static(frontendPath));
 app.get("/", (req, res) => {
     res.sendFile(path.join(frontendPath, "index.html"));
 });
-
 
 // =====================================================
 // TEST MYSQL CONNECTION
@@ -140,13 +127,18 @@ app.get("/test-db", (req, res) => {
 // =====================================================
 // PRODUCTS
 // =====================================================
+// IMPORTANT:
+// product_id and category_id are STRING IDs.
+// Example:
+// product_id = GSS_AHM_BBH_006
+// category_id = GSS_AHM_001
+// =====================================================
 
 app.get("/api/products", async(req, res) => {
     try {
         const products = await query(`
             SELECT
-                product_id AS id,
-                product_code,
+                product_id,
                 name,
                 description,
                 price,
@@ -422,6 +414,7 @@ app.get("/api/reviews", async(req, res) => {
 // =====================================================
 // Login is NOT required.
 // userId can be null for guests.
+// productId is a STRING.
 // =====================================================
 
 app.post("/api/reviews", async(req, res) => {
@@ -446,7 +439,14 @@ app.post("/api/reviews", async(req, res) => {
         "";
 
     const cleanRating = Number(rating);
-    const cleanProductId = Number(productId);
+
+    // IMPORTANT:
+    // Product IDs are STRING IDs.
+    // Example: GSS_AHM_BBH_006
+    const cleanProductId =
+        typeof productId === "string" ?
+        productId.trim() :
+        String(productId || "").trim();
 
     if (!cleanProductId ||
         !cleanName ||
@@ -468,7 +468,31 @@ app.post("/api/reviews", async(req, res) => {
 
     try {
 
-        // If userId is provided, make sure it exists.
+        // =================================================
+        // CHECK THAT PRODUCT EXISTS
+        // =================================================
+
+        const productCheck = await query(
+            `
+            SELECT product_id
+            FROM catalog
+            WHERE product_id = ?
+            LIMIT 1
+            `, [cleanProductId]
+        );
+
+        if (!productCheck.length) {
+
+            return res.status(400).json({
+                success: false,
+                error: "Invalid product."
+            });
+        }
+
+        // =================================================
+        // USER CHECK
+        // =================================================
+
         let validUserId = null;
 
         if (userId) {
@@ -485,6 +509,10 @@ app.post("/api/reviews", async(req, res) => {
                 validUserId = Number(userId);
             }
         }
+
+        // =================================================
+        // INSERT REVIEW
+        // =================================================
 
         const result = await query(
             `
@@ -530,7 +558,8 @@ app.post("/api/reviews", async(req, res) => {
             message: "Review submitted successfully!",
             review: {
                 id: result.insertId,
-                reviewRef
+                reviewRef,
+                productId: cleanProductId
             }
         });
 
@@ -550,8 +579,6 @@ app.post("/api/reviews", async(req, res) => {
 
 // =====================================================
 // USERS - SIGNUP
-// =====================================================
-// Signup is optional, but still available.
 // =====================================================
 
 app.post("/api/auth/signup", async(req, res) => {
@@ -646,6 +673,7 @@ app.post("/api/auth/signup", async(req, res) => {
         });
 
     } catch (err) {
+
         console.error("========== SIGNUP ERROR ==========");
         console.error("Code:", err.code);
         console.error("Message:", err.message);
@@ -654,7 +682,9 @@ app.post("/api/auth/signup", async(req, res) => {
 
         return res.status(500).json({
             success: false,
-            error: err.sqlMessage || err.message || "Could not create account."
+            error: err.sqlMessage ||
+                err.message ||
+                "Could not create account."
         });
     }
 });
@@ -714,7 +744,6 @@ app.post("/api/auth/login", async(req, res) => {
 
         const dbUser = users[0];
 
-        // Guest accounts do not have passwords.
         if (!dbUser.password ||
             dbUser.account_type === "guest"
         ) {
@@ -770,8 +799,8 @@ app.post("/api/auth/login", async(req, res) => {
 // =====================================================
 // IMPORTANT:
 // Login is NOT required.
-// If userId exists -> registered user.
-// If userId does not exist -> create guest user.
+// Product IDs are STRING IDs.
+// Category IDs are STRING IDs.
 // =====================================================
 
 app.post("/api/create-order", async(req, res) => {
@@ -866,8 +895,10 @@ app.post("/api/create-order", async(req, res) => {
                 customer.email.trim().toLowerCase() :
                 null;
 
-            // If email already belongs to a registered account,
-            // don't silently create another account with same email.
+            // =================================================
+            // EMAIL EXISTS
+            // =================================================
+
             if (guestEmail) {
 
                 const existingUsers = await query(
@@ -892,12 +923,9 @@ app.post("/api/create-order", async(req, res) => {
                     const existingUser =
                         existingUsers[0];
 
-                    // Use existing account as the order owner.
                     userId = existingUser.id;
                     dbCustomer = existingUser;
 
-                    // If existing account is registered,
-                    // use its saved information where available.
                     if (
                         dbCustomer.account_type === "registered" &&
                         (!dbCustomer.phone ||
@@ -946,7 +974,10 @@ app.post("/api/create-order", async(req, res) => {
 
                 } else {
 
-                    // Create guest user.
+                    // =================================================
+                    // CREATE GUEST USER
+                    // =================================================
+
                     const guestResult =
                         await query(
                             `
@@ -1016,8 +1047,10 @@ app.post("/api/create-order", async(req, res) => {
 
             } else {
 
-                // No email supplied.
-                // Create a guest account anyway.
+                // =================================================
+                // CREATE GUEST WITHOUT EMAIL
+                // =================================================
+
                 const guestResult =
                     await query(
                         `
@@ -1089,17 +1122,21 @@ app.post("/api/create-order", async(req, res) => {
         // =================================================
         // GET PRODUCTS FROM CATALOG
         // =================================================
+        // IMPORTANT:
+        // DO NOT use Number() here.
+        // Product IDs are strings.
+        // =================================================
 
-        const productIds =
-            items.map(item =>
-                Number(item.id)
-            );
+        const productIds = items.map(item => {
+            return typeof item.id === "string" ?
+                item.id.trim() :
+                String(item.id || "").trim();
+        });
 
+        // Remove empty IDs
         if (
             productIds.some(
-                id =>
-                !Number.isInteger(id) ||
-                id <= 0
+                id => !id
             )
         ) {
 
@@ -1108,6 +1145,10 @@ app.post("/api/create-order", async(req, res) => {
                 error: "Invalid product."
             });
         }
+
+        // =================================================
+        // SQL PLACEHOLDERS
+        // =================================================
 
         const placeholders =
             productIds
@@ -1118,25 +1159,30 @@ app.post("/api/create-order", async(req, res) => {
             await query(
                 `
                 SELECT
-                    product_id AS id,
+                    product_id,
                     name,
                     price,
                     stock,
-                    category_id
+                    category_id,
+                    category_name
                 FROM catalog
                 WHERE product_id IN (${placeholders})
                 `,
                 productIds
             );
 
+        // =================================================
+        // PRODUCT MAP
+        // =================================================
+        // Keys remain STRING IDs.
+        // =================================================
+
         const productMap =
             new Map(
-                products.map(
-                    product => [
-                        product.id,
-                        product
-                    ]
-                )
+                products.map(product => [
+                    String(product.product_id).trim(),
+                    product
+                ])
             );
 
         // =================================================
@@ -1149,9 +1195,14 @@ app.post("/api/create-order", async(req, res) => {
 
         for (const item of items) {
 
+            const itemProductId =
+                typeof item.id === "string" ?
+                item.id.trim() :
+                String(item.id || "").trim();
+
             const product =
                 productMap.get(
-                    Number(item.id)
+                    itemProductId
                 );
 
             const quantity =
@@ -1169,7 +1220,10 @@ app.post("/api/create-order", async(req, res) => {
                 });
             }
 
-            // Stock check
+            // =================================================
+            // STOCK CHECK
+            // =================================================
+
             if (
                 Number(product.stock) <
                 quantity
@@ -1197,33 +1251,47 @@ app.post("/api/create-order", async(req, res) => {
                 "besan ladoo": 35
             };
 
-            const productName = String(product.name || "")
+            const productName =
+                String(product.name || "")
                 .trim()
                 .toLowerCase();
 
-            const sellingPrice = LOCAL_PRICES[productName];
+            const sellingPrice =
+                LOCAL_PRICES[productName];
 
             if (sellingPrice == null) {
+
                 return res.status(400).json({
                     success: false,
                     error: `${product.name} is currently unavailable for online purchase.`
                 });
             }
 
-            subtotal += sellingPrice * quantity;
+            subtotal +=
+                sellingPrice * quantity;
 
             orderItems.push({
-                productId: product.id,
+                productId: String(product.product_id).trim(),
+
                 name: product.name,
+
                 price: sellingPrice,
+
                 quantity,
-                categoryId: product.category_id
+
+                categoryId: String(product.category_id).trim(),
+
+                categoryName: product.category_name
             });
         }
 
-        const totalAmount = subtotal;
+        const totalAmount =
+            subtotal;
 
-        const amountInPaise = Math.round(totalAmount * 100);
+        const amountInPaise =
+            Math.round(
+                totalAmount * 100
+            );
 
         // =================================================
         // CREATE RAZORPAY ORDER
@@ -1239,8 +1307,11 @@ app.post("/api/create-order", async(req, res) => {
                 receipt,
                 notes: {
                     customer_id: dbCustomer.customer_id,
+
                     customer_name: dbCustomer.name,
+
                     customer_phone: dbCustomer.phone,
+
                     delivery_address: dbCustomer.address
                 }
             });
@@ -1293,6 +1364,8 @@ app.post("/api/create-order", async(req, res) => {
 
         // =================================================
         // SAVE ORDER ITEMS
+        // =================================================
+        // product_id and category_id are STRING values.
         // =================================================
 
         for (const item of orderItems) {
@@ -1385,13 +1458,18 @@ app.post("/api/create-order", async(req, res) => {
 
             // Razorpay frontend information
             key: process.env.RAZORPAY_KEY_ID,
+
             razorpayOrderId: razorpayOrder.id,
+
             amount: razorpayOrder.amount,
+
             currency: razorpayOrder.currency,
 
             // Database information
             dbOrderId,
+
             orderNumber,
+
             paymentRef,
 
             // Customer information
@@ -1402,7 +1480,22 @@ app.post("/api/create-order", async(req, res) => {
                 email: dbCustomer.email,
                 phone: dbCustomer.phone,
                 accountType: dbCustomer.account_type
-            }
+            },
+
+            // Product information
+            items: orderItems.map(item => ({
+                productId: item.productId,
+
+                categoryId: item.categoryId,
+
+                categoryName: item.categoryName,
+
+                name: item.name,
+
+                price: item.price,
+
+                quantity: item.quantity
+            }))
         });
 
     } catch (err) {
