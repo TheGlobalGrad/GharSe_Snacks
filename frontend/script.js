@@ -1,4 +1,4 @@
-// =====================================================
+﻿// =====================================================
 // CONFIG
 // =====================================================
 
@@ -746,122 +746,26 @@ function initCarousel() {
 
 async function loadProducts() {
     const grid = document.getElementById("productGrid");
-
     if (!grid) return;
-
     try {
         const data = await api("/api/products");
-
-        if (!data || !Array.isArray(data.products)) {
-            throw new Error("Invalid product data received.");
-        }
-
-        const apiProducts = data.products;
-
-        const localProductsByName = new Map(
-            PRODUCT_CATALOG.map((product) => [String(product.name || "").trim().toLowerCase(), product])
-        );
-
-        // MySQL is the storefront source of truth. A local product only supplies
-        // an image/fallback copy when it has the same name as the catalog product.
-        PRODUCTS = apiProducts.map((dbProduct) => {
-            const localProduct = localProductsByName.get(String(dbProduct.name || "").trim().toLowerCase()) || {};
-            return {
-                ...localProduct,
-
-                product_id: String(
-                    dbProduct.product_id ||
-                    dbProduct.id ||
-                    ""
-                ),
-
-                category_id: String(
-                    dbProduct.category_id ||
-                    ""
-                ),
-
-                name: dbProduct.name ||
-                    localProduct.name,
-
-                description: dbProduct.description ||
-                    localProduct.description ||
-                    "",
-
-                price: dbProduct.price == null ?
-                    localProduct.price : Number(dbProduct.price),
-
-                stock: dbProduct.stock == null ?
-                    localProduct.stock : Number(dbProduct.stock),
-
-                // KEEP LOCAL IMAGE PATH
-                // because your actual images are in frontend/images
-                image_url: localProduct.image_url ||
-                    dbProduct.image_url ||
-                    "",
-
-                city: localProduct.city || dbProduct.category_name || "",
-
-                pack_size: localProduct.pack_size ||
-                    dbProduct.pack_size ||
-                    "",
-
-                category: dbProduct.category_name ||
-                    dbProduct.category ||
-                    localProduct.category ||
-                    "",
-
-                product_code: dbProduct.product_code || ""
-            };
-        });
-
-        const cityOrder = [
-            "Ratlam",
-            "Indore",
-            "Kochi",
-            "Pune",
-            "Bikaner",
-            "Jaipur",
-            "Ahmedabad"
-        ];
-
-        PRODUCTS.sort(
-            (a, b) =>
-            cityOrder.indexOf(a.city) -
-            cityOrder.indexOf(b.city)
-        );
-
-    } catch (err) {
-
-        console.error(
-            "Product API failed. Using local product catalog:",
-            err
-        );
-
-        // IMPORTANT:
-        // NEVER EMPTY THE PRODUCT GRID JUST BECAUSE
-        // THE DATABASE/API HAS A PROBLEM.
-        // Keep each fallback product addressable. Previously every fallback had an
-        // empty ID, causing every "View details" button to open the first product.
-        PRODUCTS = PRODUCT_CATALOG.map((product, index) => ({
-            ...product,
-            product_id: product.product_id || `local-${String(product.name || "product")
-                .toLowerCase()
-                .replace(/[^a-z0-9]+/g, "-")
-                .replace(/(^-|-$)/g, "")}-${index + 1}`,
-            category_id: product.category_id || `LOCAL-${String(product.city || "GSS")
-                .toUpperCase()
-                .replace(/[^A-Z]/g, "")
-                .slice(0, 3) || "GSS"}`
+        PRODUCTS = data.products.map(dbProduct => ({
+            product_id: String(dbProduct.product_id),
+            category_id: String(dbProduct.category_id),
+            name: dbProduct.name,
+            description: dbProduct.description,
+            price: Number(dbProduct.price),
+            stock: Number(dbProduct.stock),
+            image_url: dbProduct.image_url || "Images/Coming Soon.jpeg",
+            city: dbProduct.city,
+            category: dbProduct.category_name,
+            pack_size: "100g / packet"
         }));
+    } catch (err) {
+        console.error("Product API failed:", err);
+        PRODUCTS = [];
     }
-
-    reconcileCartWithProducts();
-
     renderProducts();
-
-    if (typeof loadProductRatings === "function") {
-        loadProductRatings();
-    }
 }
 
 
@@ -1127,10 +1031,7 @@ function renderProducts() {
 
             return `
 
-                    <article
-                        class="product-card reveal"
-                        data-id="${escapeHtml(productId)}"
-                    >
+                    <article class="product-card reveal" id="city-${escapeHtml(p.city.toLowerCase())}" data-id="${escapeHtml(productId)}">
 
                         <div class="product-image-wrap">
 
@@ -1669,6 +1570,25 @@ async function openProductDetail(
 
                                     </div>
 
+
+                                    <div
+                                        class="product-price-detail"
+                                        style="
+                                            margin-top: 4px;
+                                            font-size: 0.82rem;
+                                            opacity: 0.7;
+                                        "
+                                    >
+
+                                        ${money(
+                                            product.price
+                                        )}
+                                        for
+                                        ${escapeHtml(
+                                            product.pack_size
+                                        )}
+
+                                    </div>
 
                                 `
 
@@ -2655,10 +2575,7 @@ document.addEventListener(
 
                                 customer: {
 
-                                    userId:
-                                        CURRENT_USER
-                                            ? CURRENT_USER.id
-                                            : null,
+                                    userId: CURRENT_USER ? CURRENT_USER.id : `gss_userid_${Date.now()}`,
 
                                     name:
                                         formData.get(
@@ -3900,26 +3817,9 @@ document.addEventListener(
         if (!firstProduct) return;
 
 
-        const productCard =
-            document.querySelector(
-                `.product-card[data-id="${CSS.escape(
-                    String(
-                        firstProduct.product_id
-                    )
-                )}"]`
-            );
-
-
-        if (!productCard) return;
-
-
-        productCard.scrollIntoView({
-
-            behavior: "smooth",
-
-            block: "center"
-
-        });
+        const citySection = document.getElementById(`city-${city.toLowerCase()}`);
+if (!citySection) return;
+citySection.scrollIntoView({ behavior: "smooth", block: "start" });
 
     }
 );

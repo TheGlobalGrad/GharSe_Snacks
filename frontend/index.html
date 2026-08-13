@@ -76,6 +76,30 @@
             white-space: nowrap !important;
             box-sizing: border-box !important;
         }
+        
+        @media (max-width: 768px) {
+            .hero {
+                flex-direction: column;
+            }
+            .product-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+            }
+            .modal-card {
+                width: 95%;
+            }
+            .nav-links {
+                gap: 10px;
+            }
+            .city-chip {
+                font-size: 13px;
+                padding: 6px 10px;
+            }
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
     </style>
 </head>
 
@@ -360,12 +384,6 @@
                     <small>Coming soon</small>
                 </span>
 
-
-
-                <span class="city-chip is-coming" data-city="Varanasi">
-                    Varanasi
-                    <small>Coming soon</small>
-                </span>
 
             </div>
 

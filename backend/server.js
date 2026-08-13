@@ -17,7 +17,7 @@ const app = express();
 // MIDDLEWARE
 // =====================================================
 
-app.use(cors());
+app.use(cors({ origin: "*", credentials: true }));
 app.use(express.json());
 
 // =====================================================
@@ -272,6 +272,7 @@ app.post("/api/partner-interest", async(req, res) => {
                 result.insertId
             ]
         );
+        await sendEmail(email, "GharSe Snacks Partnership Application Received", `<p>Hi ${name},</p><p>Thank you for applying to partner with GharSe Snacks. Our team will get in touch with you within 7 days.</p>`);
 
         res.status(201).json({
             success: true,
@@ -966,6 +967,7 @@ app.post("/api/create-order", async(req, res) => {
                 place: customer.place.trim(),
                 account_type: "guest"
             };
+            dbCustomer.guest_ref = `gss_userid_${crypto.randomBytes(4).toString('hex')}`;
         }
 
         // =================================================
@@ -1173,18 +1175,10 @@ app.post("/api/create-order", async(req, res) => {
             await query(
                 `
                 INSERT INTO order_details
-                (user_id, customer_name, customer_email, customer_phone, delivery_address, delivery_place, total_amount, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                `, [
-                    userId,
-                    dbCustomer.name,
-                    dbCustomer.email,
-                    dbCustomer.phone,
-                    dbCustomer.address,
-                    dbCustomer.place,
-                    totalAmount,
-                    "pending"
-                ]
+(user_id, guest_ref, customer_name, customer_email, customer_phone, delivery_address, delivery_place, total_amount, status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+` [userId, dbCustomer.guest_ref, dbCustomer.name, dbCustomer.email, dbCustomer.phone, dbCustomer.address, dbCustomer.place, totalAmount, "pending"]
+                `
             );
 
         const dbOrderId =
@@ -1203,10 +1197,9 @@ app.post("/api/create-order", async(req, res) => {
 
         await query(
             `
-            UPDATE order_details
-            SET order_number = ?
-            WHERE id = ?
-            `, [
+                UPDATE order_details SET order_number = ?
+                WHERE id = ?
+                `, [
                 orderNumber,
                 dbOrderId
             ]
@@ -1223,16 +1216,14 @@ app.post("/api/create-order", async(req, res) => {
             const itemResult =
                 await query(
                     `
-                    INSERT INTO items_ordered
-                    (
-                        order_id,
-                        product_id,
-                        category_id,
-                        quantity,
-                        price
-                    )
-                    VALUES (?, ?, ?, ?, ?)
-                    `, [
+                INSERT INTO items_ordered(
+                    order_id,
+                    product_id,
+                    category_id,
+                    quantity,
+                    price
+                ) VALUES( ? , ? , ? , ? , ? )
+                `, [
                         dbOrderId,
                         item.productId,
                         item.categoryId,
@@ -1249,8 +1240,7 @@ app.post("/api/create-order", async(req, res) => {
 
             await query(
                 `
-                UPDATE items_ordered
-                SET item_ref = ?
+                UPDATE items_ordered SET item_ref = ?
                 WHERE id = ?
                 `, [
                     itemRef,
@@ -1266,14 +1256,12 @@ app.post("/api/create-order", async(req, res) => {
         const paymentResult =
             await query(
                 `
-                INSERT INTO payments
-                (
+                INSERT INTO payments(
                     order_id,
                     razorpay_order_id,
                     amount,
                     status
-                )
-                VALUES (?, ?, ?, ?)
+                ) VALUES( ? , ? , ? , ? )
                 `, [
                     dbOrderId,
                     razorpayOrder.id,
@@ -1290,10 +1278,9 @@ app.post("/api/create-order", async(req, res) => {
 
         await query(
             `
-            UPDATE payments
-            SET payment_ref = ?
-            WHERE id = ?
-            `, [
+                UPDATE payments SET payment_ref = ?
+                WHERE id = ?
+                `, [
                 paymentRef,
                 paymentResult.insertId
             ]
@@ -1396,7 +1383,9 @@ app.post("/api/verify-payment", async(req, res) => {
                 process.env.RAZORPAY_KEY_SECRET
             )
             .update(
-                `${orderId}|${paymentId}`
+                `
+                $ { orderId } | $ { paymentId }
+                `
             )
             .digest("hex");
 
@@ -1422,13 +1411,11 @@ app.post("/api/verify-payment", async(req, res) => {
 
         await query(
             `
-            UPDATE payments
-            SET
-                razorpay_payment_id = ?,
-                razorpay_signature = ?,
+                UPDATE payments SET razorpay_payment_id = ? ,
+                razorpay_signature = ? ,
                 status = 'paid'
-            WHERE razorpay_order_id = ?
-            `, [
+                WHERE razorpay_order_id = ?
+                `, [
                 paymentId,
                 signature,
                 orderId
@@ -1442,11 +1429,8 @@ app.post("/api/verify-payment", async(req, res) => {
         const payments =
             await query(
                 `
-                SELECT
-                    order_id,
-                    payment_ref
-                FROM payments
-                WHERE razorpay_order_id = ?
+                SELECT order_id,
+                payment_ref FROM payments WHERE razorpay_order_id = ?
                 `, [orderId]
             );
 
@@ -1458,8 +1442,7 @@ app.post("/api/verify-payment", async(req, res) => {
 
             await query(
                 `
-                UPDATE order_details
-                SET status = 'paid'
+                UPDATE order_details SET status = 'paid'
                 WHERE id = ?
                 `, [
                     payments[0].order_id
@@ -1467,48 +1450,45 @@ app.post("/api/verify-payment", async(req, res) => {
             );
 
             const orderRows = await query(
-                `SELECT od.order_number, od.total_amount, u.name, u.email, u.phone, u.address
-                 FROM order_details od
-                 LEFT JOIN users u ON u.id = od.user_id
-                 WHERE od.id = ?`, [payments[0].order_id]
+                `
+                SELECT od.order_number, od.total_amount, u.name, u.email, u.phone, u.address FROM order_details od LEFT JOIN users u ON u.id = od.user_id WHERE od.id = ? `, [payments[0].order_id]
             );
             const orderedItems = await query(
-                `SELECT io.quantity, io.price, c.name, c.category_name
-                 FROM items_ordered io
-                 JOIN catalog c ON c.product_id = io.product_id
-                 WHERE io.order_id = ?`, [payments[0].order_id]
+                `
+                SELECT io.quantity, io.price, c.name, c.category_name FROM items_ordered io JOIN catalog c ON c.product_id = io.product_id WHERE io.order_id = ? `, [payments[0].order_id]
             );
             const order = orderRows[0];
             const itemList = orderedItems.map((item) =>
-                `<li>${item.name} (${item.category_name}) — ${item.quantity} × ₹${Number(item.price).toFixed(2)}</li>`
+                ` < li > $ { item.name }($ { item.category_name })— $ { item.quantity }×₹
+                $ { Number(item.price).toFixed(2) } < /li>`
             ).join("");
 
-            if (order) {
-                const summary = `<p><strong>Order:</strong> ${order.order_number}</p><ul>${itemList}</ul><p><strong>Total:</strong> ₹${Number(order.total_amount).toFixed(2)}</p>`;
-                await sendEmail(order.email, "Your GharSe Snacks order is confirmed", `<p>Hi ${order.name || "there"},</p><p>Your payment was successful. Thank you for ordering with GharSe Snacks.</p>${summary}<p>We will share delivery updates soon.</p>`);
-                await sendEmail(process.env.ORDER_NOTIFICATION_EMAIL || "gharse.team@gmail.com", `New paid order: ${order.order_number}`, `<p>A customer has completed payment.</p>${summary}<p><strong>Customer:</strong> ${order.name || "Guest"}<br><strong>Phone:</strong> ${order.phone || "Not provided"}<br><strong>Address:</strong> ${order.address || "Not provided"}</p>`);
-            }
+        if (order) {
+            const summary = `<p><strong>Order:</strong> ${order.order_number}</p><ul>${itemList}</ul><p><strong>Total:</strong> ₹${Number(order.total_amount).toFixed(2)}</p>`;
+            await sendEmail(order.email, "Your GharSe Snacks order is confirmed", `<p>Hi ${order.name || "there"},</p><p>Your payment was successful. Thank you for ordering with GharSe Snacks.</p>${summary}<p>We will share delivery updates soon.</p>`);
+            await sendEmail(process.env.ORDER_NOTIFICATION_EMAIL || "gharse.team@gmail.com", `New paid order: ${order.order_number}`, `<p>A customer has completed payment.</p>${summary}<p><strong>Customer:</strong> ${order.name || "Guest"}<br><strong>Phone:</strong> ${order.phone || "Not provided"}<br><strong>Address:</strong> ${order.address || "Not provided"}</p>`);
         }
-
-        res.json({
-            success: true,
-            verified: true,
-            paymentRef: payments.length ?
-                payments[0].payment_ref : null
-        });
-
-    } catch (err) {
-
-        console.error(
-            "Payment verification failed:",
-            err.message
-        );
-
-        res.status(500).json({
-            success: false,
-            error: "Payment verification failed."
-        });
     }
+
+    res.json({
+        success: true,
+        verified: true,
+        paymentRef: payments.length ?
+            payments[0].payment_ref : null
+    });
+
+} catch (err) {
+
+    console.error(
+        "Payment verification failed:",
+        err.message
+    );
+
+    res.status(500).json({
+        success: false,
+        error: "Payment verification failed."
+    });
+}
 });
 
 // =====================================================
