@@ -1150,12 +1150,11 @@ app.post("/api/create-order", async(req, res) => {
         // CREATE DATABASE ORDER
         // =================================================
 
-        const orderResult =
-            await query(
-                `
-                const orderResult = await query(`
-                INSERT INTO order_details(user_id, guest_ref, customer_name, customer_email, customer_phone, delivery_address, delivery_place, total_amount, status) VALUES( ? , ? , ? )
-                `, [userId, dbCustomer.guest_ref, dbCustomer.name, dbCustomer.email, dbCustomer.phone, dbCustomer.address, dbCustomer.place, totalAmount, "pending"]);
+        const orderResult = await query(`
+    INSERT INTO order_details
+    (user_id, guest_ref, customer_name, customer_email, customer_phone, delivery_address, delivery_place, total_amount, status)
+    VALUES (?, ?, ?)
+`, [userId, dbCustomer.guest_ref, dbCustomer.name, dbCustomer.email, dbCustomer.phone, dbCustomer.address, dbCustomer.place, totalAmount, "pending"]);
 
         const dbOrderId =
             orderResult.insertId;
@@ -1439,32 +1438,32 @@ app.post("/api/verify-payment", async(req, res) => {
                 $ { Number(item.price).toFixed(2) } < /li>`
             ).join("");
 
-        if (order) {
-            const summary = `<p><strong>Order:</strong> ${order.order_number}</p><ul>${itemList}</ul><p><strong>Total:</strong> ₹${Number(order.total_amount).toFixed(2)}</p>`;
-            await sendEmail(order.email, "Your GharSe Snacks order is confirmed", `<p>Hi ${order.name || "there"},</p><p>Your payment was successful. Thank you for ordering with GharSe Snacks.</p>${summary}<p>We will share delivery updates soon.</p>`);
-            await sendEmail(process.env.ORDER_NOTIFICATION_EMAIL || "gharse.team@gmail.com", `New paid order: ${order.order_number}`, `<p>A customer has completed payment.</p>${summary}<p><strong>Customer:</strong> ${order.name || "Guest"}<br><strong>Phone:</strong> ${order.phone || "Not provided"}<br><strong>Address:</strong> ${order.address || "Not provided"}</p>`);
+            if (order) {
+                const summary = `<p><strong>Order:</strong> ${order.order_number}</p><ul>${itemList}</ul><p><strong>Total:</strong> ₹${Number(order.total_amount).toFixed(2)}</p>`;
+                await sendEmail(order.email, "Your GharSe Snacks order is confirmed", `<p>Hi ${order.name || "there"},</p><p>Your payment was successful. Thank you for ordering with GharSe Snacks.</p>${summary}<p>We will share delivery updates soon.</p>`);
+                await sendEmail(process.env.ORDER_NOTIFICATION_EMAIL || "gharse.team@gmail.com", `New paid order: ${order.order_number}`, `<p>A customer has completed payment.</p>${summary}<p><strong>Customer:</strong> ${order.name || "Guest"}<br><strong>Phone:</strong> ${order.phone || "Not provided"}<br><strong>Address:</strong> ${order.address || "Not provided"}</p>`);
+            }
         }
+
+        res.json({
+            success: true,
+            verified: true,
+            paymentRef: payments.length ?
+                payments[0].payment_ref : null
+        });
+
+    } catch (err) {
+
+        console.error(
+            "Payment verification failed:",
+            err.message
+        );
+
+        res.status(500).json({
+            success: false,
+            error: "Payment verification failed."
+        });
     }
-
-    res.json({
-        success: true,
-        verified: true,
-        paymentRef: payments.length ?
-            payments[0].payment_ref : null
-    });
-
-} catch (err) {
-
-    console.error(
-        "Payment verification failed:",
-        err.message
-    );
-
-    res.status(500).json({
-        success: false,
-        error: "Payment verification failed."
-    });
-}
 });
 
 // =====================================================
