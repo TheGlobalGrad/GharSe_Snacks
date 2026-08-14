@@ -988,14 +988,7 @@ app.post("/api/create-order", async(req, res) => {
         const products =
             await query(
                 `
-                SELECT
-                    product_id,
-                    name,
-                    price,
-                    stock,
-                    category_id,
-                    category_name
-                FROM catalog
+                SELECT product_id, name, price, category_id FROM catalog
                 WHERE product_id IN (${placeholders})
                 `,
                 productIds
@@ -1153,7 +1146,7 @@ app.post("/api/create-order", async(req, res) => {
         const orderResult = await query(`
     INSERT INTO order_details
     (user_id, guest_ref, customer_name, customer_email, customer_phone, delivery_address, delivery_place, total_amount, status)
-    VALUES (?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 `, [userId, dbCustomer.guest_ref, dbCustomer.name, dbCustomer.email, dbCustomer.phone, dbCustomer.address, dbCustomer.place, totalAmount, "pending"]);
 
         const dbOrderId =
@@ -1357,11 +1350,7 @@ app.post("/api/verify-payment", async(req, res) => {
                 "sha256",
                 process.env.RAZORPAY_KEY_SECRET
             )
-            .update(
-                `
-                $ { orderId } | $ { paymentId }
-                `
-            )
+            .update(`${orderId}|${paymentId}`)
             .digest("hex");
 
         const valid =
