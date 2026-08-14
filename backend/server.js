@@ -153,35 +153,14 @@ app.get("/test-db", (req, res) => {
 app.get("/api/products", async(req, res) => {
     try {
         const products = await query(`
-            SELECT
-                product_id,
-                product_code,
-                name,
-                description,
-                price,
-                stock,
-                image_url,
-                category_id,
-                category_name
-            FROM catalog
-            ORDER BY product_id
+            SELECT product_id, name, description, price, image_url, category_id, city
+            FROM catalog 
+            ORDER BY city, name
         `);
-
-        res.json({
-            success: true,
-            products
-        });
-
+        res.json({ success: true, products });
     } catch (err) {
-        console.error(
-            "Failed to fetch products:",
-            err.message
-        );
-
-        res.status(500).json({
-            success: false,
-            error: "Could not load products."
-        });
+        console.error("Failed to fetch products:", err.message);
+        res.status(500).json({ success: false, error: "Could not load products." });
     }
 });
 
@@ -272,7 +251,7 @@ app.post("/api/partner-interest", async(req, res) => {
                 result.insertId
             ]
         );
-        await sendEmail(email, "GharSe Snacks Partnership Application Received", `<p>Hi ${name},</p><p>Thank you for applying to partner with GharSe Snacks. Our team will get in touch with you within 7 days.</p>`);
+        await sendEmail(email, "GharSe Snacks Partnership Application Received", "<p>Hi " + name + ",</p><p>Thank you for applying to partner with GharSe Snacks. Our team will get in touch with you within 7 days.</p>");
 
         res.status(201).json({
             success: true,
@@ -1174,12 +1153,9 @@ app.post("/api/create-order", async(req, res) => {
         const orderResult =
             await query(
                 `
-                INSERT INTO order_details
-(user_id, guest_ref, customer_name, customer_email, customer_phone, delivery_address, delivery_place, total_amount, status)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-` [userId, dbCustomer.guest_ref, dbCustomer.name, dbCustomer.email, dbCustomer.phone, dbCustomer.address, dbCustomer.place, totalAmount, "pending"]
-                `
-            );
+                const orderResult = await query(`
+                INSERT INTO order_details(user_id, guest_ref, customer_name, customer_email, customer_phone, delivery_address, delivery_place, total_amount, status) VALUES( ? , ? , ? )
+                `, [userId, dbCustomer.guest_ref, dbCustomer.name, dbCustomer.email, dbCustomer.phone, dbCustomer.address, dbCustomer.place, totalAmount, "pending"]);
 
         const dbOrderId =
             orderResult.insertId;
@@ -1455,7 +1431,7 @@ app.post("/api/verify-payment", async(req, res) => {
             );
             const orderedItems = await query(
                 `
-                SELECT io.quantity, io.price, c.name, c.category_name FROM items_ordered io JOIN catalog c ON c.product_id = io.product_id WHERE io.order_id = ? `, [payments[0].order_id]
+                SELECT io.quantity, io.price, c.name FROM items_ordered io JOIN catalog c ON c.product_id = io.product_id WHERE io.order_id = ? `, [payments[0].order_id]
             );
             const order = orderRows[0];
             const itemList = orderedItems.map((item) =>
