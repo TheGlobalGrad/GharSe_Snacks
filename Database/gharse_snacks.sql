@@ -1,3 +1,4 @@
+USE gharse_snacks;
 -- Clean MySQL 8 schema for the existing `gharse_snacks` database.
 -- Import in MySQL Workbench after selecting that database. This removes old data.
 SET FOREIGN_KEY_CHECKS = 0;
@@ -30,7 +31,7 @@ CREATE TABLE partner_applications (
 CREATE TABLE bulk_order_enquiries (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, enquiry_id VARCHAR(32) UNIQUE,
  name VARCHAR(120) NOT NULL, email VARCHAR(255) NOT NULL, phone VARCHAR(20) NOT NULL,
- delivery_address TEXT NOT NULL, state VARCHAR(100) NOT NULL, quantity VARCHAR(100) NOT NULL,
+ delivery_address TEXT NOT NULL, state VARCHAR(100) NOT NULL, product VARCHAR(160) NOT NULL, quantity VARCHAR(100) NOT NULL,
  requirements TEXT NULL, status ENUM('new','contacted','quoted','closed') NOT NULL DEFAULT 'new',
  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
