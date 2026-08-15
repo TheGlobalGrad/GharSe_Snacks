@@ -2,7 +2,12 @@
 // CONFIG
 // =====================================================
 
-const API_BASE = window.location.hostname.includes('onrender.com') ? "https://dep-d9v4jm5bedkc73c6b41g.onrender.com" : "http://127.0.0.1:3001";
+const API_BASE =
+    window.location.protocol === "file:" ||
+    (window.location.hostname === "localhost" && window.location.port !== "3001") ||
+    (window.location.hostname === "127.0.0.1" && window.location.port !== "3001") ?
+    "http://127.0.0.1:3001" :
+    "";
 
 
 // =====================================================
@@ -750,10 +755,11 @@ async function loadProducts() {
             name: dbProduct.name,
             description: dbProduct.description,
             price: Number(dbProduct.price),
+            stock: Number(dbProduct.stock),
             image_url: dbProduct.image_url || "Images/Coming Soon.jpeg",
             city: dbProduct.city,
-            pack_size: "100g / packet",
-            stock: dbProduct.price == null ? 0 : 100
+            category: dbProduct.category_name,
+            pack_size: dbProduct.pack_size || ""
         }));
     } catch (err) {
         console.error("Product API failed:", err);
@@ -1005,25 +1011,25 @@ function renderProducts() {
         PRODUCTS
         .map((p) => {
 
-            const productId =
-                String(
-                    p.product_id || ""
-                );
+                const productId =
+                    String(
+                        p.product_id || ""
+                    );
 
 
-            const rating =
-                PRODUCT_RATINGS.get(
-                    productId
-                );
+                const rating =
+                    PRODUCT_RATINGS.get(
+                        productId
+                    );
 
 
-            const ratingText =
-                rating ?
-                `${rating.average.toFixed(1)} / 5 (${rating.count})` :
-                "No ratings yet";
+                const ratingText =
+                    rating ?
+                    `${rating.average.toFixed(1)} / 5 (${rating.count})` :
+                    "No ratings yet";
 
 
-            return `
+                return `
 
                     <article class="product-card reveal" id="city-${escapeHtml(p.city.toLowerCase())}" data-id="${escapeHtml(productId)}">
 
@@ -1112,7 +1118,7 @@ function renderProducts() {
 
                                 ${
                                     Number(p.stock) > 0
-                                        ? "In stock"
+                                        ? `${Number(p.stock)} packs available`
                                         : "Will be available soon"
                                 }
 
@@ -1438,7 +1444,7 @@ async function openProductDetail(
 
                     ${
                         available
-                            ? "In stock"
+                            ? `${Number(product.stock)} packs available`
                             : "Coming soon"
                     }
 
@@ -1511,6 +1517,14 @@ async function openProductDetail(
                         ""
                     )}
 
+                </p>
+
+                <p class="detail-stock" aria-live="polite">
+                    ${
+                        available
+                            ? `Stock vault: ${Number(product.stock)} pack${Number(product.stock) === 1 ? "" : "s"} ready to ship`
+                            : "This regional favourite is not available for checkout yet."
+                    }
                 </p>
 
 
@@ -2136,4 +2150,1747 @@ async function addToCart(
         try {
 
             await api(
-                "/api/
+                "/api/product-interest",
+                {
+                    method: "POST",
+
+                    body:
+                        JSON.stringify({
+
+                            productId:
+                                id,
+
+                            userId:
+                                CURRENT_USER.id,
+
+                            quantity
+
+                        })
+
+                }
+            );
+
+
+            showToast(
+                `You'll be notified when ${product.name} is available.`
+            );
+
+
+        } catch (error) {
+
+            showToast(
+                error.message,
+                true
+            );
+
+        }
+
+
+        return;
+
+    }
+
+
+    // =================================================
+    // ADD TO CART
+    // =================================================
+
+    const existing =
+        CART.find(
+            (item) =>
+                String(
+                    item.product_id || ""
+                ) === id
+        );
+
+
+    if (existing) {
+
+        existing.quantity +=
+            quantity;
+
+        existing.pack_size =
+            product.pack_size || "";
+
+        existing.category_id =
+            product.category_id || "";
+
+    } else {
+
+        CART.push({
+
+            product_id:
+                id,
+
+            category_id:
+                String(
+                    product.category_id ||
+                    ""
+                ),
+
+            name:
+                product.name,
+
+            price:
+                Number(
+                    product.price
+                ),
+
+            pack_size:
+                product.pack_size ||
+                "",
+
+            quantity
+
+        });
+
+    }
+
+
+    persistCart();
+
+    renderCart();
+
+
+    showToast(
+        `${product.name} added to cart.`
+    );
+
+
+    const qtyValue =
+        Array.from(
+            document.querySelectorAll(
+                `[data-qty-for="${CSS.escape(id)}"] [data-qty-value]`
+            )
+        ).find(
+            (item) =>
+                item.offsetParent !== null
+        );
+
+
+    if (qtyValue) {
+
+        qtyValue.textContent =
+            "0";
+
+    }
+
+}
+
+
+function removeFromCart(
+    productId
+) {
+
+    const id =
+        String(productId);
+
+
+    CART =
+        CART.filter(
+            (item) =>
+                String(
+                    item.product_id || ""
+                ) !== id
+        );
+
+
+    persistCart();
+
+    renderCart();
+
+}
+
+
+// =====================================================
+// RENDER CART
+// =====================================================
+
+function renderCart() {
+
+    const countEl =
+        document.getElementById(
+            "cartCount"
+        );
+
+    const itemsEl =
+        document.getElementById(
+            "cartItems"
+        );
+
+
+    const totalItems =
+        CART.reduce(
+            (sum, item) =>
+                sum +
+                Number(
+                    item.quantity
+                ),
+            0
+        );
+
+
+    if (countEl) {
+
+        countEl.textContent =
+            totalItems;
+
+    }
+
+
+    document
+        .getElementById(
+            "cartTrigger"
+        )
+        ?.setAttribute(
+            "aria-label",
+            `Shopping cart, ${totalItems} ${
+                totalItems === 1
+                    ? "item"
+                    : "items"
+            }`
+        );
+
+
+    if (itemsEl) {
+
+        if (!CART.length) {
+
+            itemsEl.innerHTML =
+                `
+                <p class="empty-reviews">
+                    Your cart is empty. Add some snacks to get started!
+                </p>
+                `;
+
+        } else {
+
+            itemsEl.innerHTML =
+                CART
+                    .map(
+                        (item) => `
+
+                            <div class="cart-item">
+
+                                <div>
+
+                                    <h4>
+                                        ${escapeHtml(
+                                            item.name
+                                        )}
+                                    </h4>
+
+
+                                    <p>
+
+                                        ${money(
+                                            item.price
+                                        )}
+
+                                        ×
+
+                                        ${item.quantity}
+
+                                        ${
+                                            item.pack_size
+                                                ? ` · ${escapeHtml(
+                                                    item.pack_size
+                                                )} each`
+                                                : ""
+                                        }
+
+                                    </p>
+
+                                </div>
+
+
+                                <div class="qty-control">
+
+                                    <strong>
+
+                                        ${money(
+                                            Number(
+                                                item.price
+                                            ) *
+                                            Number(
+                                                item.quantity
+                                            )
+                                        )}
+
+                                    </strong>
+
+
+                                    <button
+                                        type="button"
+                                        data-remove-from-cart="${escapeHtml(
+                                            String(
+                                                item.product_id
+                                            )
+                                        )}"
+                                        aria-label="Remove item"
+                                    >
+                                        ×
+                                    </button>
+
+                                </div>
+
+                            </div>
+
+                        `
+                    )
+                    .join("");
+
+        }
+
+    }
+
+
+    const subtotal =
+        CART.reduce(
+            (sum, item) =>
+                sum +
+                Number(item.price) *
+                Number(item.quantity),
+            0
+        );
+
+
+    const total =
+        subtotal;
+
+
+    const subtotalEl =
+        document.getElementById(
+            "subtotalValue"
+        );
+
+    const totalEl =
+        document.getElementById(
+            "totalValue"
+        );
+
+
+    if (subtotalEl) {
+
+        subtotalEl.textContent =
+            money(subtotal);
+
+    }
+
+
+    if (totalEl) {
+
+        totalEl.textContent =
+            money(total);
+
+    }
+
+}
+
+
+// =====================================================
+// REMOVE CART ITEM
+// =====================================================
+
+document.addEventListener(
+    "click",
+    (e) => {
+
+        const removeBtn =
+            e.target.closest(
+                "[data-remove-from-cart]"
+            );
+
+
+        if (removeBtn) {
+
+            removeFromCart(
+                removeBtn.dataset
+                    .removeFromCart
+            );
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// CHECKOUT — RAZORPAY
+// =====================================================
+
+document.addEventListener(
+    "submit",
+    async (e) => {
+
+        if (
+            e.target.id !==
+            "checkoutForm"
+        ) {
+
+            return;
+
+        }
+
+
+        e.preventDefault();
+
+
+        if (!CART.length) {
+
+            showToast(
+                "Your cart is empty.",
+                true
+            );
+
+            return;
+
+        }
+
+
+        const form =
+            e.target;
+
+
+        const submitBtn =
+            form.querySelector(
+                "button[type=submit]"
+            );
+
+
+        if (submitBtn) {
+
+            submitBtn.disabled =
+                true;
+
+        }
+
+
+        try {
+
+            const formData =
+                new FormData(form);
+
+
+            const data =
+                await api(
+                    "/api/create-order",
+                    {
+                        method: "POST",
+
+                        body:
+                            JSON.stringify({
+
+                                customer: {
+
+                                    // Guests must stay null; only real database user IDs are sent.
+                                    userId: CURRENT_USER ? CURRENT_USER.id : null,
+
+                                    name:
+                                        formData.get(
+                                            "name"
+                                        ),
+
+                                    email:
+                                        formData.get(
+                                            "email"
+                                        ),
+
+                                    phone:
+                                        formData.get(
+                                            "phone"
+                                        ),
+
+                                    address:
+                                        formData.get(
+                                            "address"
+                                        ),
+
+                                    place:
+                                        formData.get(
+                                            "place"
+                                        ),
+
+                                    state:
+                                        formData.get(
+                                            "state"
+                                        )
+
+                                },
+
+
+                                items:
+                                    CART.map(
+                                        (item) => ({
+
+                                            id:
+                                                item.product_id,
+
+                                            product_id:
+                                                item.product_id,
+
+                                            category_id:
+                                                item.category_id,
+
+                                            quantity:
+                                                item.quantity
+
+                                        })
+                                    )
+
+                            })
+
+                    }
+                );
+
+
+            const options = {
+
+                key:
+                    data.key,
+
+                amount:
+                    data.amount,
+
+                currency:
+                    data.currency,
+
+                name:
+                    "GharSe Snacks",
+
+                description:
+                    "Order payment",
+
+                order_id:
+                    data.razorpayOrderId,
+
+
+                handler:
+                    async function (
+                        response
+                    ) {
+
+                        try {
+
+                            await api(
+                                "/api/verify-payment",
+                                {
+                                    method: "POST",
+
+                                    body:
+                                        JSON.stringify(
+                                            response
+                                        )
+                                }
+                            );
+
+
+                            CART = [];
+
+                            persistCart();
+
+                            renderCart();
+
+
+                            closeModal(
+                                "cartModal"
+                            );
+
+
+                            showSuccess(
+                                "Payment successful!",
+                                `Order ${data.orderNumber} is confirmed. We'll notify you with updates.`
+                            );
+
+
+                            form.reset();
+
+
+                        } catch (err) {
+
+                            showToast(
+                                err.message,
+                                true
+                            );
+
+                        }
+
+                    },
+
+
+                theme: {
+
+                    color:
+                        "#a4100d"
+
+                }
+
+            };
+
+
+            const rzp =
+                new Razorpay(
+                    options
+                );
+
+
+            rzp.open();
+
+
+        } catch (err) {
+
+            showToast(
+                err.message,
+                true
+            );
+
+        } finally {
+
+            if (submitBtn) {
+
+                submitBtn.disabled =
+                    false;
+
+            }
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// AUTH
+// =====================================================
+
+function setAuthMode(mode) {
+
+    AUTH_MODE =
+        mode;
+
+
+    const modalCard =
+        document.querySelector(
+            "#authModal .modal-card"
+        );
+
+
+    const title =
+        document.getElementById(
+            "authTitle"
+        );
+
+
+    const switchText =
+        document.getElementById(
+            "authSwitchText"
+        );
+
+
+    const toggleBtn =
+        document.getElementById(
+            "toggleAuthMode"
+        );
+
+
+    const nameInput =
+        document.querySelector(
+            '#authForm [name="name"]'
+        );
+
+
+    if (modalCard) {
+
+        modalCard.classList.toggle(
+            "signup-mode",
+            mode === "signup"
+        );
+
+    }
+
+
+    document
+        .querySelectorAll(
+            "#authForm .signup-only"
+        )
+        .forEach((el) => {
+
+            el.required =
+                mode === "signup" &&
+                [
+                    "name",
+                    "contact",
+                    "place",
+                    "address"
+                ].includes(
+                    el.name
+                );
+
+        });
+
+
+    if (nameInput) {
+
+        nameInput.required =
+            mode === "signup";
+
+    }
+
+
+    if (mode === "signup") {
+
+        if (title)
+            title.textContent =
+                "Create account";
+
+        if (switchText)
+            switchText.textContent =
+                "Already have an account? ";
+
+        if (toggleBtn)
+            toggleBtn.textContent =
+                "Login instead";
+
+    } else {
+
+        if (title)
+            title.textContent =
+                "Login";
+
+        if (switchText)
+            switchText.textContent =
+                "New user? ";
+
+        if (toggleBtn)
+            toggleBtn.textContent =
+                "Create account";
+
+    }
+
+}
+
+
+// =====================================================
+// AUTH BUTTON
+// =====================================================
+
+document
+    .getElementById(
+        "authTrigger"
+    )
+    ?.addEventListener(
+        "click",
+        () => {
+
+            if (CURRENT_USER) {
+
+                return openProfile();
+
+            }
+
+
+            setAuthMode(
+                "login"
+            );
+
+
+            openModal(
+                "authModal"
+            );
+
+        }
+    );
+
+
+// =====================================================
+// STAR RATING
+// =====================================================
+
+document.addEventListener(
+    "change",
+    (e) => {
+
+        if (
+            !e.target.matches(
+                'input[name="rating"]'
+            )
+        ) {
+
+            return;
+
+        }
+
+
+        const selected =
+            Number(
+                e.target.value
+            );
+
+
+        const picker =
+            e.target.closest(
+                ".star-picker"
+            );
+
+
+        if (!picker) return;
+
+
+        picker
+            .querySelectorAll(
+                ".star-choice"
+            )
+            .forEach(
+                (star) => {
+
+                    star.classList.toggle(
+                        "selected",
+                        Number(
+                            star.querySelector(
+                                "input"
+                            ).value
+                        ) <= selected
+                    );
+
+                }
+            );
+
+    }
+);
+
+
+// =====================================================
+// LOGOUT
+// =====================================================
+
+document
+    .getElementById(
+        "logoutButton"
+    )
+    ?.addEventListener(
+        "click",
+        () => {
+
+            CURRENT_USER =
+                null;
+
+
+            localStorage.removeItem(
+                "gharse_user"
+            );
+
+
+            closeModal(
+                "profileModal"
+            );
+
+
+            showToast(
+                "You have been logged out."
+            );
+
+        }
+    );
+
+
+// =====================================================
+// TOGGLE AUTH MODE
+// =====================================================
+
+document
+    .getElementById(
+        "toggleAuthMode"
+    )
+    ?.addEventListener(
+        "click",
+        () => {
+
+            setAuthMode(
+                AUTH_MODE === "login"
+                    ? "signup"
+                    : "login"
+            );
+
+        }
+    );
+
+
+// =====================================================
+// LOGIN / SIGNUP
+// =====================================================
+
+document
+    .getElementById(
+        "authForm"
+    )
+    ?.addEventListener(
+        "submit",
+        async (e) => {
+
+            e.preventDefault();
+
+
+            const form =
+                e.target;
+
+
+            const formData =
+                new FormData(form);
+
+
+            const submitBtn =
+                form.querySelector(
+                    "button[type=submit]"
+                );
+
+
+            if (submitBtn)
+                submitBtn.disabled =
+                    true;
+
+
+            try {
+
+                const endpoint =
+                    AUTH_MODE === "signup"
+                        ? "/api/auth/signup"
+                        : "/api/auth/login";
+
+
+                const payload =
+                    AUTH_MODE === "signup"
+
+                        ? {
+
+                            name:
+                                formData.get(
+                                    "name"
+                                ),
+
+                            email:
+                                formData.get(
+                                    "email"
+                                ),
+
+                            password:
+                                formData.get(
+                                    "password"
+                                ),
+
+                            contact:
+                                formData.get(
+                                    "contact"
+                                ),
+
+                            place:
+                                formData.get(
+                                    "place"
+                                ),
+
+                            address:
+                                formData.get(
+                                    "address"
+                                ),
+
+                            preferredSnacks:
+                                formData.get(
+                                    "preferredSnacks"
+                                )
+
+                        }
+
+                        : {
+
+                            identifier:
+                                formData.get(
+                                    "email"
+                                ),
+
+                            password:
+                                formData.get(
+                                    "password"
+                                )
+
+                        };
+
+
+                const data =
+                    await api(
+                        endpoint,
+                        {
+                            method: "POST",
+
+                            body:
+                                JSON.stringify(
+                                    payload
+                                )
+
+                        }
+                    );
+
+
+                if (
+                    AUTH_MODE ===
+                    "signup"
+                ) {
+
+                    showToast(
+                        "Account created! Please log in."
+                    );
+
+
+                    setAuthMode(
+                        "login"
+                    );
+
+
+                    form.reset();
+
+
+                } else {
+
+                    CURRENT_USER =
+                        data.user;
+
+
+                    localStorage.setItem(
+                        "gharse_user",
+                        JSON.stringify(
+                            CURRENT_USER
+                        )
+                    );
+
+
+                    closeModal(
+                        "authModal"
+                    );
+
+
+                    showToast(
+                        `Welcome back, ${data.user.name}!`
+                    );
+
+
+                    form.reset();
+
+                }
+
+
+            } catch (err) {
+
+                showToast(
+                    err.message,
+                    true
+                );
+
+            } finally {
+
+                if (submitBtn)
+                    submitBtn.disabled =
+                        false;
+
+            }
+
+        }
+    );
+
+
+// =====================================================
+// PARTNER FORM
+// =====================================================
+
+document
+    .getElementById(
+        "partnerForm"
+    )
+    ?.addEventListener(
+        "submit",
+        async (e) => {
+
+            e.preventDefault();
+
+
+            const form =
+                e.target;
+
+
+            const formData =
+                new FormData(form);
+
+
+            const submitBtn =
+                form.querySelector(
+                    "button[type=submit]"
+                );
+
+
+            if (submitBtn)
+                submitBtn.disabled =
+                    true;
+
+
+            try {
+
+                const data =
+                    await api(
+                        "/api/partner-interest",
+                        {
+                            method: "POST",
+
+                            body:
+                                JSON.stringify({
+
+                                    name:
+                                        formData.get(
+                                            "name"
+                                        ),
+
+                                    contact:
+                                        formData.get(
+                                            "contact"
+                                        ),
+
+                                    email:
+                                        formData.get(
+                                            "email"
+                                        ),
+
+                                    state:
+                                        formData.get(
+                                            "state"
+                                        ),
+
+                                    details:
+                                        formData.get(
+                                            "details"
+                                        )
+
+                                })
+
+                        }
+                    );
+
+
+                form.reset();
+
+
+                showSuccess(
+                    "Thank you!",
+                    `We've received your partner application (${data.partnerId}). Our team will reach out soon.`
+                );
+
+
+            } catch (err) {
+
+                showToast(
+                    err.message,
+                    true
+                );
+
+            } finally {
+
+                if (submitBtn)
+                    submitBtn.disabled =
+                        false;
+
+            }
+
+        }
+    );
+
+
+// =====================================================
+// SUBSCRIBE FORM
+// =====================================================
+
+document
+    .getElementById(
+        "subscribeForm"
+    )
+    ?.addEventListener(
+        "submit",
+        async (e) => {
+
+            e.preventDefault();
+
+
+            const form =
+                e.target;
+
+
+            const formData =
+                new FormData(form);
+
+
+            const submitBtn =
+                form.querySelector(
+                    "button[type=submit]"
+                );
+
+
+            if (submitBtn)
+                submitBtn.disabled =
+                    true;
+
+
+            try {
+
+                const data =
+                    await api(
+                        "/api/subscriptions",
+                        {
+                            method: "POST",
+
+                            body:
+                                JSON.stringify({
+
+                                    email:
+                                        formData.get(
+                                            "email"
+                                        ),
+
+                                    userId:
+                                        CURRENT_USER?.id ||
+                                        null
+
+                                })
+
+                        }
+                    );
+
+
+                form.reset();
+
+
+                showToast(
+                    data.alreadySubscribed
+                        ? "You're already on the list!"
+                        : "Subscribed! Watch your inbox for updates."
+                );
+
+
+            } catch (err) {
+
+                showToast(
+                    err.message,
+                    true
+                );
+
+            } finally {
+
+                if (submitBtn)
+                    submitBtn.disabled =
+                        false;
+
+            }
+
+        }
+    );
+
+
+// =====================================================
+// MODAL WIRING
+// =====================================================
+
+document
+    .getElementById(
+        "cartTrigger"
+    )
+    ?.addEventListener(
+        "click",
+        () =>
+            openModal(
+                "cartModal"
+            )
+    );
+
+
+document
+    .getElementById(
+        "forgotPasswordTrigger"
+    )
+    ?.addEventListener(
+        "click",
+        () => {
+
+            closeModal(
+                "authModal"
+            );
+
+
+            openModal(
+                "resetPasswordModal"
+            );
+
+        }
+    );
+
+
+// =====================================================
+// PASSWORD RESET REQUEST
+// =====================================================
+
+document
+    .getElementById(
+        "resetRequestForm"
+    )
+    ?.addEventListener(
+        "submit",
+        async (e) => {
+
+            e.preventDefault();
+
+
+            const form =
+                e.target;
+
+
+            const email =
+                new FormData(form)
+                    .get("email");
+
+
+            try {
+
+                await api(
+                    "/api/auth/password-reset/request",
+                    {
+                        method: "POST",
+
+                        body:
+                            JSON.stringify({
+                                email
+                            })
+
+                    }
+                );
+
+
+                const emailInput =
+                    document.querySelector(
+                        '#resetConfirmForm [name="email"]'
+                    );
+
+
+                if (emailInput) {
+
+                    emailInput.value =
+                        email;
+
+                }
+
+
+                const confirmForm =
+                    document.getElementById(
+                        "resetConfirmForm"
+                    );
+
+
+                if (confirmForm) {
+
+                    confirmForm.classList.remove(
+                        "is-hidden"
+                    );
+
+                }
+
+
+                showToast(
+                    "Reset code sent if that email has an account."
+                );
+
+
+            } catch (error) {
+
+                showToast(
+                    error.message,
+                    true
+                );
+
+            }
+
+        }
+    );
+
+
+// =====================================================
+// PASSWORD RESET CONFIRM
+// =====================================================
+
+document
+    .getElementById(
+        "resetConfirmForm"
+    )
+    ?.addEventListener(
+        "submit",
+        async (e) => {
+
+            e.preventDefault();
+
+
+            const form =
+                e.target;
+
+
+            const data =
+                new FormData(form);
+
+
+            try {
+
+                await api(
+                    "/api/auth/password-reset/confirm",
+                    {
+                        method: "POST",
+
+                        body:
+                            JSON.stringify(
+                                Object.fromEntries(
+                                    data
+                                )
+                            )
+
+                    }
+                );
+
+
+                form.reset();
+
+
+                closeModal(
+                    "resetPasswordModal"
+                );
+
+
+                openModal(
+                    "authModal"
+                );
+
+
+                showToast(
+                    "Password updated. Please log in."
+                );
+
+
+            } catch (error) {
+
+                showToast(
+                    error.message,
+                    true
+                );
+
+            }
+
+        }
+    );
+
+
+// =====================================================
+// SUGGESTIONS
+// =====================================================
+
+document
+    .getElementById(
+        "suggestionTrigger"
+    )
+    ?.addEventListener(
+        "click",
+        () =>
+            openModal(
+                "suggestionModal"
+            )
+    );
+
+
+// =====================================================
+// BULK / WHOLESALE ORDER ENQUIRY
+// =====================================================
+
+document
+    .getElementById(
+        "bulkOrderTrigger"
+    )
+    ?.addEventListener(
+        "click",
+        () => openModal("bulkOrderModal")
+    );
+
+
+document
+    .getElementById(
+        "bulkOrderForm"
+    )
+    ?.addEventListener(
+        "submit",
+        async (e) => {
+
+            e.preventDefault();
+
+            const form = e.target;
+            const submitBtn = form.querySelector('button[type="submit"]');
+
+            if (submitBtn) submitBtn.disabled = true;
+
+            try {
+
+                const data = new FormData(form);
+
+                const response = await api(
+                    "/api/bulk-order-enquiries",
+                    {
+                        method: "POST",
+                        body: JSON.stringify(Object.fromEntries(data))
+                    }
+                );
+
+                form.reset();
+                closeModal("bulkOrderModal");
+                showSuccess(
+                    "Bulk enquiry received!",
+                    `Your reference is ${response.enquiryId}. Our team will contact you within seven days with availability and pricing.`
+                );
+
+            } catch (error) {
+
+                showToast(error.message, true);
+
+            } finally {
+
+                if (submitBtn) submitBtn.disabled = false;
+
+            }
+
+        }
+    );
+
+
+document
+    .getElementById(
+        "suggestionForm"
+    )
+    ?.addEventListener(
+        "submit",
+        async (e) => {
+
+            e.preventDefault();
+
+
+            const form =
+                e.target;
+
+
+            const data =
+                new FormData(form);
+
+
+            try {
+
+                await api(
+                    "/api/suggestions",
+                    {
+                        method: "POST",
+
+                        body:
+                            JSON.stringify({
+
+                                userId:
+                                    CURRENT_USER?.id ||
+                                    null,
+
+                                name:
+                                    data.get(
+                                        "name"
+                                    ),
+
+                                email:
+                                    data.get(
+                                        "email"
+                                    ),
+
+                                suggestion:
+                                    data.get(
+                                        "suggestion"
+                                    )
+
+                            })
+
+                    }
+                );
+
+
+                form.reset();
+
+
+                closeModal(
+                    "suggestionModal"
+                );
+
+
+                showSuccess(
+                    "Thank you!",
+                    "Your suggestion has been saved."
+                );
+
+
+            } catch (error) {
+
+                showToast(
+                    error.message,
+                    true
+                );
+
+            }
+
+        }
+    );
+
+
+// =====================================================
+// CLOSE MODALS
+// =====================================================
+
+document.addEventListener(
+    "click",
+    (e) => {
+
+        const closeBtn =
+            e.target.closest(
+                "[data-close]"
+            );
+
+
+        if (closeBtn) {
+
+            closeModal(
+                closeBtn.dataset.close
+            );
+
+        }
+
+
+        if (
+            e.target.classList.contains(
+                "modal"
+            ) ||
+            e.target.classList.contains(
+                "success-modal"
+            )
+        ) {
+
+            e.target.classList.remove(
+                "open"
+            );
+
+            e.target.setAttribute(
+                "aria-hidden",
+                "true"
+            );
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// ESCAPE KEY
+// =====================================================
+
+document.addEventListener(
+    "keydown",
+    (e) => {
+
+        if (e.key === "Escape") {
+
+            document
+                .querySelectorAll(
+                    ".modal.open, .success-modal.open"
+                )
+                .forEach(
+                    (m) => {
+
+                        m.classList.remove(
+                            "open"
+                        );
+
+                        m.setAttribute(
+                            "aria-hidden",
+                            "true"
+                        );
+
+                    }
+                );
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// INIT
+// =====================================================
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        initReveal();
+
+        initCarousel();
+
+        loadProducts();
+
+        loadCart();
+
+        setAuthMode(
+            "login"
+        );
+
+    }
+);
+
+
+// =====================================================
+// CITY CLICK → SCROLL TO FIRST PRODUCT
+// =====================================================
+
+document.addEventListener(
+    "click",
+    (e) => {
+
+        const cityChip =
+            e.target.closest(
+                ".city-chip"
+            );
+
+
+        if (!cityChip) return;
+
+
+        const city =
+            cityChip.dataset.city;
+
+
+        if (!city) return;
+
+
+        const firstProduct =
+            PRODUCTS.find(
+                (product) =>
+                    String(
+                        product.city || ""
+                    ).toLowerCase() ===
+                    city.toLowerCase()
+            );
+
+
+        if (!firstProduct) return;
+
+
+        const citySection = document.getElementById(`city-${city.toLowerCase()}`);
+if (!citySection) return;
+citySection.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    }
+);

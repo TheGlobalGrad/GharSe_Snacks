@@ -288,12 +288,12 @@
                     </h3>
 
                     <p>
-                        We may not always have large quantities available on the cart — so email us with your quantity, budget, location, time constraint, and any other requirement, and we'll get back to you.
+                        Tell us the quantity, delivery location and any special requirement. We will share availability and a wholesale quote.
                     </p>
 
-                    <a class="btn btn-secondary hero-group-btn bulk-btn" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=gharse.team@gmail.com&amp;su=Bulk%20Order%20Enquiry%20-%20GharSe%20Snacks" target="_blank" rel="noopener">
-                        📧 Email us for bulk orders
-                    </a>
+                    <button class="btn btn-secondary hero-group-btn bulk-btn" type="button" id="bulkOrderTrigger">
+                        Request a bulk quote
+                    </button>
 
                 </div>
 
@@ -1000,6 +1000,30 @@
 
     </div>
 
+
+    <!-- BULK / WHOLESALE ORDER MODAL -->
+    <div class="modal" id="bulkOrderModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="bulkOrderTitle">
+        <div class="modal-card bulk-order-modal-card">
+            <div class="modal-head">
+                <div>
+                    <p class="eyebrow">Bulk &amp; wholesale</p>
+                    <h3 id="bulkOrderTitle">Request a bulk quote</h3>
+                </div>
+                <button class="close-btn" data-close="bulkOrderModal" aria-label="Close">×</button>
+            </div>
+            <p class="form-note">Share the essentials and the GharSe Snacks team will contact you with availability and pricing.</p>
+            <form id="bulkOrderForm" class="bulk-order-form">
+                <label>Full name<input name="name" type="text" autocomplete="name" required /></label>
+                <label>Email address<input name="email" type="email" autocomplete="email" required /></label>
+                <label>Phone number<input name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="20" required /></label>
+                <label>State<input name="state" type="text" autocomplete="address-level1" required /></label>
+                <label class="full-width">Delivery address<textarea name="address" rows="3" autocomplete="street-address" required></textarea></label>
+                <label class="full-width">Estimated quantity / requirement<input name="quantity" type="text" placeholder="For example: 100 packs for a hostel event" required /></label>
+                <label class="full-width">Specific requirements (optional)<textarea name="requirements" rows="4" placeholder="Products, delivery date, budget, packaging, GST details, etc."></textarea></label>
+                <button class="btn btn-primary full-width" type="submit">Send bulk order enquiry</button>
+            </form>
+        </div>
+    </div>
 
     <!-- SUCCESS MODAL -->
     <div class="success-modal" id="successModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="successModalTitle">
