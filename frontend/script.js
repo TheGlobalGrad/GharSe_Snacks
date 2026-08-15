@@ -617,7 +617,7 @@ function initCarousel() {
     const slides =
         Array.from(
             carousel.querySelectorAll(
-                ".carousel-slide"
+                ".carousel-slide:not(.is-hidden)"
             )
         );
 

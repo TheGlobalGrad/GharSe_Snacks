@@ -14,7 +14,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
     <link rel="stylesheet" href="style.css" />
 
@@ -196,33 +196,29 @@
             <!-- HERO CAROUSEL -->
             <div class="hero-card hero-carousel reveal" id="heroCarousel" aria-label="GharSe Snacks highlights">
 
-                <div class="carousel-slide is-active">
+                <div class="carousel-slide is-active suggestion-slide">
 
-                    <div class="hero-logo-shell">
-                        <img class="hero-logo-img" src="Images/Logo.jpeg" alt="GharSe Snacks brand logo" />
-                    </div>
+                    <img class="carousel-feature-image" src="Images/Suggestions.png" alt="Share your snack suggestions" />
 
                     <div class="hero-card-head">
-                        <p>Regional favourites</p>
-                        <span>Fresh drop</span>
+                        <p>Your ideas matter</p>
+                        <span>Suggestions</span>
                     </div>
 
                     <h3>
-                        Comfort-food snacks, delivered to your everyday break.
+                        Have a special request or a snack you want us to bring next?
                     </h3>
 
                     <p>
-                        Discover regional crunch from Gujarat, Indore, and beyond—made for chai time, hostels, and home.
+                        Tell us the flavour, city, quantity, or delivery need. We use these requests to plan future drops.
                     </p>
 
-                    <a class="btn btn-secondary hero-group-btn" href="#products">
-                        Explore snacks
-                    </a>
+                    <button class="btn btn-secondary hero-group-btn" type="button" id="suggestionTrigger">Share a suggestion</button>
 
                 </div>
 
 
-                <div class="carousel-slide">
+                <div class="carousel-slide is-hidden">
 
                     <div class="carousel-photo order-photo" aria-hidden="true"></div>
 
@@ -246,7 +242,7 @@
                 </div>
 
 
-                <div class="carousel-slide">
+                <div class="carousel-slide is-hidden">
 
                     <div class="carousel-photo taste-photo" aria-hidden="true"></div>
 
@@ -272,9 +268,7 @@
 
                 <div class="carousel-slide bulk-slide">
 
-                    <div class="carousel-icon bulk-icon" aria-hidden="true">
-                        📦
-                    </div>
+                    <img class="carousel-feature-image" src="Images/Bulk Orders.png" alt="Bulk snack orders" />
 
                     <div class="hero-card-head">
                         <p>Bulk & wholesale orders</p>
@@ -308,11 +302,7 @@
 
                         <button type="button" class="is-active" data-carousel-slide="0" role="tab" aria-selected="true" aria-label="Show highlight 1"></button>
 
-                        <button type="button" data-carousel-slide="1" role="tab" aria-selected="false" aria-label="Show highlight 2"></button>
-
-                        <button type="button" data-carousel-slide="2" role="tab" aria-selected="false" aria-label="Show highlight 3"></button>
-
-                        <button type="button" data-carousel-slide="3" role="tab" aria-selected="false" aria-label="Show highlight 4"></button>
+                        <button type="button" data-carousel-slide="1" role="tab" aria-selected="false" aria-label="Show bulk orders"></button>
 
                     </div>
 
@@ -913,10 +903,10 @@
                             <div>
 
                                 <label for="checkoutPlace">
-                                    City / Place
+                                    State/City
                                 </label>
 
-                                <input type="text" id="checkoutPlace" name="place" placeholder="Enter Your City or Place" autocomplete="address-level2" required />
+                                <input type="text" id="checkoutPlace" name="place" placeholder="Enter Your State or City" autocomplete="address-level2" required />
 
                             </div>
 
@@ -1018,7 +1008,8 @@
                 <label>Phone number<input name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="20" required /></label>
                 <label>State<input name="state" type="text" autocomplete="address-level1" required /></label>
                 <label class="full-width">Delivery address<textarea name="address" rows="3" autocomplete="street-address" required></textarea></label>
-                <label class="full-width">Estimated quantity / requirement<input name="quantity" type="text" placeholder="For example: 100 packs for a hostel event" required /></label>
+                <label>Product / regional food<input name="product" type="text" placeholder="For example: Spicy Potato Chips" required /></label>
+                <label>Estimated quantity<input name="quantity" type="text" placeholder="For example: 100 packs" required /></label>
                 <label class="full-width">Specific requirements (optional)<textarea name="requirements" rows="4" placeholder="Products, delivery date, budget, packaging, GST details, etc."></textarea></label>
                 <button class="btn btn-primary full-width" type="submit">Send bulk order enquiry</button>
             </form>

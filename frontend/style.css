@@ -241,8 +241,8 @@ img {
 }
 
 .tagline-text {
-    font-family: var(--font-display);
-    font-size: 1.2rem;
+    font-family: 'Caveat', cursive;
+    font-size: 1.7rem;
     font-weight: 800;
     font-style: italic;
     letter-spacing: 0.02em;
@@ -2110,6 +2110,77 @@ footer strong {
 
 .is-hidden {
     display: none !important;
+}
+
+
+/* Rich visual touches for product information and carousel cards. */
+
+.carousel-feature-image {
+    width: 100%;
+    height: 128px;
+    object-fit: cover;
+    border-radius: 18px;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(255, 255, 255, .45);
+    box-shadow: 0 12px 24px rgba(61, 31, 28, .18);
+}
+
+.product-card {
+    background: linear-gradient(155deg, #fffdf8, #fff4dc);
+}
+
+.product-card .product-top {
+    align-items: flex-start;
+}
+
+.product-rating {
+    padding: .4rem .55rem;
+    border-radius: 10px;
+    background: #fff7df;
+}
+
+.checkout-panel {
+    background: linear-gradient(145deg, #fffaf0, #fff);
+    border: 1px solid #f0d7a1;
+}
+
+@media (max-width: 640px) {
+    .topbar {
+        padding: .55rem .8rem;
+        gap: .5rem;
+    }
+    .brand-logo {
+        width: 46px;
+        height: 46px;
+    }
+    .brand-text strong {
+        font-size: 1.15rem;
+    }
+    .brand-text small {
+        font-size: .73rem;
+    }
+    .nav-links a {
+        display: none;
+    }
+    .hero,
+    .partner-grid,
+    .subscribe-box {
+        grid-template-columns: 1fr !important;
+    }
+    .product-grid {
+        grid-template-columns: 1fr !important;
+    }
+    .product-detail-layout {
+        grid-template-columns: 1fr;
+    }
+    .modal-card {
+        width: calc(100vw - 1rem);
+        padding: 1rem;
+    }
+    .checkout-form input,
+    .checkout-form textarea {
+        font-size: 16px;
+    }
 }
 
 

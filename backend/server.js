@@ -79,14 +79,15 @@ app.post('/api/bulk-order-enquiries', async(req, res) => {
         phone = clean(req.body.phone, 20),
         address = clean(req.body.address, 2000),
         state = clean(req.body.state, 100),
+        product = clean(req.body.product, 160),
         quantity = clean(req.body.quantity, 100),
         requirements = clean(req.body.requirements, 5000);
-    if (!name || !emailOk(email) || !phone || !address || !state || !quantity) return res.status(400).json({ success: false, error: 'Please complete all required bulk-order details with a valid email.' });
+    if (!name || !emailOk(email) || !phone || !address || !state || !product || !quantity) return res.status(400).json({ success: false, error: 'Please complete all required bulk-order details with a valid email.' });
     try {
-        const result = await q('INSERT INTO bulk_order_enquiries (name,email,phone,delivery_address,state,quantity,requirements) VALUES (?,?,?,?,?,?,?)', [name, email, phone, address, state, quantity, requirements || null]);
+        const result = await q('INSERT INTO bulk_order_enquiries (name,email,phone,delivery_address,state,product,quantity,requirements) VALUES (?,?,?,?,?,?,?,?)', [name, email, phone, address, state, product, quantity, requirements || null]);
         const enquiryId = ref('BULK', result.insertId);
         await q('UPDATE bulk_order_enquiries SET enquiry_id=? WHERE id=?', [enquiryId, result.insertId]);
-        const details = `<p><strong>Bulk enquiry:</strong> ${esc(enquiryId)}</p><p><strong>Customer:</strong> ${esc(name)}<br><strong>Email:</strong> ${esc(email)}<br><strong>Phone:</strong> ${esc(phone)}<br><strong>State:</strong> ${esc(state)}<br><strong>Address:</strong> ${esc(address)}<br><strong>Quantity:</strong> ${esc(quantity)}</p><p><strong>Requirements:</strong><br>${esc(requirements || 'None')}</p>`;
+        const details = `<p><strong>Bulk enquiry:</strong> ${esc(enquiryId)}</p><p><strong>Customer:</strong> ${esc(name)}<br><strong>Email:</strong> ${esc(email)}<br><strong>Phone:</strong> ${esc(phone)}<br><strong>State:</strong> ${esc(state)}<br><strong>Address:</strong> ${esc(address)}<br><strong>Product:</strong> ${esc(product)}<br><strong>Quantity:</strong> ${esc(quantity)}</p><p><strong>Requirements:</strong><br>${esc(requirements || 'None')}</p>`;
         await Promise.all([sendEmail(email, 'Your GharSe Snacks bulk-order enquiry', `<p>Hi ${esc(name)},</p><p>We received your bulk-order enquiry. Your reference is <strong>${enquiryId}</strong>. Our team will contact you within seven days with availability and pricing.</p>`), sendEmail(BUSINESS_EMAIL, `New bulk order enquiry: ${enquiryId}`, details)]);
         res.status(201).json({ success: true, enquiryId });
     } catch (error) {
