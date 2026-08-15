@@ -34,7 +34,7 @@ const PRODUCT_IMAGE_FILES = {
 
     "sev": "Images/Sev.jpeg",
 
-    "spicy parmal / murmure": "Images/Spicy Parmal.jpeg",
+    "spicy parmal / murmure": "Images/Spicy Parmal (Murmure).jpeg",
 
     "spicy potato chips": "Images/Spicy Potato Chips.jpeg",
 
@@ -112,11 +112,11 @@ const PRODUCT_CATALOG = [
     },
 
     {
-        name: "Spicy Parmal / Murmure",
+        name: "Spicy Parmal (Murmure)",
         city: "Indore",
         price: 69,
         pack_size: "100g / packet",
-        image_url: "Images/Spicy Parmal.jpeg",
+        image_url: "Images/Spicy Parmal (Murmure).jpeg",
         description: "A spicy and crunchy Indori-style parmal and murmure snack.",
         stock: 100,
         category: "Indori Snacks"
