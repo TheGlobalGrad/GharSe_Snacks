@@ -114,7 +114,7 @@ UPDATE products
 UPDATE products SET stock = 32 WHERE product_id = 'GSS_RAT_SEV_019';
 
 INSERT INTO products (product_id, category_id, name, description, price, stock, pack_size, image_url, is_coming_soon, is_active, display_order)
-SELECT 'GSS_IND_SPC_020', 'GSS_IND_003', 'Potato Chips — 100g', 'Sharing potato chips packet.', 69, 25, '100g / packet', 'Images/Spicy Potato Chips.jpeg', FALSE, TRUE, 2
+SELECT 'GSS_IND_SPC_020', 'GSS_IND_003', 'Potato Chips — 120g', 'Sharing potato chips packet.', 69, 25, '120g / packet', 'Images/Spicy Potato Chips.jpeg', FALSE, TRUE, 2
 WHERE NOT EXISTS (SELECT 1 FROM products WHERE product_id = 'GSS_IND_SPC_020');
 
 -- Ahmedabad catalogue: available now, grouped as Khakhra > Coin Khakhra in the storefront.
@@ -141,14 +141,14 @@ INSERT INTO product_variants (variant_id,product_id,parent_variant_id,name,descr
 ('GSS_AHM_KHK_007','GSS_AHM_KHK_001','GSS_AHM_KHK_004','Pizza Jain','Pizza-style Jain coin khakhra.',200,100,'Images/Logo.jpeg',7),
 ('GSS_AHM_KHK_008','GSS_AHM_KHK_001','GSS_AHM_KHK_004','Achari','Tangy achari coin khakhra.',200,100,'Images/Logo.jpeg',8);
 
--- One real Spicy Potato Chips product, with 40g and 100g packet variants.
+-- One real Spicy Potato Chips product, with 40g and 120g packet variants.
 UPDATE products SET is_active = FALSE WHERE product_id IN ('GSS_IND_SPC_014','GSS_IND_SPC_020');
 INSERT INTO products (product_id,category_id,name,description,price,stock,pack_size,image_url,is_coming_soon,is_active,display_order)
 SELECT 'GSS_IND_PTC_014','GSS_IND_003','Spicy Potato Chips','Crispy spicy potato chips in small and sharing packs.',NULL,108,NULL,'Images/Spicy Potato Chips.jpeg',FALSE,TRUE,1
 WHERE NOT EXISTS (SELECT 1 FROM products WHERE product_id = 'GSS_IND_PTC_014');
 INSERT INTO product_variants (variant_id,product_id,parent_variant_id,name,description,price,stock,pack_size,image_url,display_order) VALUES
 ('GSS_IND_PTC_001','GSS_IND_PTC_014',NULL,'Potato Chips — 40g','Snackable potato chips packet.',30,83,'40g / packet','Images/Spicy Potato Chips.jpeg',1),
-('GSS_IND_PTC_002','GSS_IND_PTC_014',NULL,'Potato Chips — 100g','Sharing potato chips packet.',69,25,'100g / packet','Images/Spicy Potato Chips.jpeg',2);
+('GSS_IND_PTC_002','GSS_IND_PTC_014',NULL,'Potato Chips — 120g','Sharing potato chips packet.',69,25,'120g / packet','Images/Spicy Potato Chips.jpeg',2);
 
 -- Discontinued Ahmedabad products are removed from the catalogue entirely.
 DELETE FROM products WHERE product_id IN ('GSS_AHM_SYC_009', 'GSS_AHM_BHK_012');

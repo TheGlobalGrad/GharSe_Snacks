@@ -33,4 +33,4 @@ WHERE NOT EXISTS (SELECT 1 FROM products WHERE product_id = 'GSS_IND_PTC_014');
 UPDATE product_variants SET parent_variant_id = NULL WHERE product_id = 'GSS_IND_PTC_014';
 DELETE FROM product_variants WHERE product_id = 'GSS_IND_PTC_014';
 INSERT INTO product_variants (variant_id,product_id,parent_variant_id,name,description,price,stock,pack_size,image_url,display_order) VALUES
-('GSS_IND_PTC_001','GSS_IND_PTC_014',NULL,'Potato Chips — 40g','Snackable potato chips packet.',30,83,'40g / packet','Images/Spicy Potato Chips.jpeg',1),('GSS_IND_PTC_002','GSS_IND_PTC_014',NULL,'Potato Chips — 100g','Sharing potato chips packet.',69,25,'100g / packet','Images/Spicy Potato Chips.jpeg',2);
+('GSS_IND_PTC_001','GSS_IND_PTC_014',NULL,'Potato Chips — 40g','Snackable potato chips packet.',30,83,'40g / packet','Images/Spicy Potato Chips.jpeg',1),('GSS_IND_PTC_002','GSS_IND_PTC_014',NULL,'Potato Chips — 120g','Sharing potato chips packet.',69,25,'120g / packet','Images/Spicy Potato Chips.jpeg',2);

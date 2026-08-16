@@ -2632,6 +2632,11 @@ footer strong {
     max-width: 720px;
 }
 
+.product-card .product-price.coming-soon {
+    color: var(--primary);
+    background: #fff0ee;
+}
+
 /* Bulk call-to-action: keeps the heading prominent without crowding it. */
 .bulk-card-head p {
     font-size: clamp(1.55rem, 2.3vw, 2rem);
@@ -2835,6 +2840,7 @@ footer strong {
 }
 
 .variant-card {
+    position: relative;
     display: grid;
     grid-template-columns: 1fr auto;
     gap: .75rem;
@@ -3079,4 +3085,35 @@ footer strong {
     .hero-card>.carousel-slide>p {
         font-size: .84rem;
     }
+}
+
+.variant-id {
+    position: absolute;
+    top: .85rem;
+    right: .9rem;
+    color: var(--muted);
+    font-size: .7rem;
+    font-weight: 700;
+}
+
+.variant-card > div {
+    padding-right: 9.5rem;
+}
+
+.variant-card .detail-label {
+    margin-top: .7rem;
+}
+
+.variant-card strong {
+    display: block;
+    color: var(--primary-dark);
+    font-size: 1.05rem;
+}
+
+.variant-quantity {
+    display: inline-block;
+    margin-top: .28rem;
+    color: var(--muted);
+    font-size: .78rem;
+    font-weight: 700;
 }

@@ -242,6 +242,24 @@ function money(value) {
 
 }
 
+function productCardLabel(product) {
+    if (product.variants?.length) return `${product.variants.length} varieties`;
+    if (Number(product.stock) <= 0) return "Out of stock";
+    return Number(product.price) > 0 ? money(product.price) : "Price unavailable";
+}
+
+function variantQuantityLabel(variant) {
+    if (variant.category_id === "GSS_AHM_001") return "Quantity unknown";
+    if (variant.product_id === "GSS_IND_PTC_001") return `${Number(variant.stock)} small packets left`;
+    if (variant.product_id === "GSS_IND_PTC_002") return `${Number(variant.stock)} big packets left`;
+    return Number(variant.stock) > 0 ? `${Number(variant.stock)} packs left` : "Out of stock";
+}
+
+function detailQuantityLabel(product) {
+    if (product.category_id === "GSS_AHM_001" && Number(product.stock) > 0) return "Quantity unknown";
+    return Number(product.stock) > 0 ? `${Number(product.stock)} packs available` : "Out of stock";
+}
+
 
 function showToast(message, isError = false) {
 
@@ -966,6 +984,10 @@ function renderProducts() {
 
                             </div>
 
+                            <span class="product-price ${Number(p.stock) <= 0 && !p.variants?.length ? "coming-soon" : ""}">
+                                ${escapeHtml(productCardLabel(p))}
+                            </span>
+
                         </div>
 
 
@@ -1278,7 +1300,7 @@ async function openProductDetail(
     if (product.variants?.length) {
         const detail = document.getElementById("productDetail");
         if (!detail) return;
-        detail.innerHTML = `<div class="product-detail-layout"><div class="product-image-panel"><img src="${escapeHtml(productImage(product))}" alt="${escapeHtml(product.name)}" /></div><div class="product-detail-copy"><h2>${escapeHtml(product.name)}</h2><div class="detail-meta"><span>${escapeHtml(product.category || "GharSe Snacks")}</span><span class="detail-id">Category ID: ${escapeHtml(product.category_id || "Unavailable")}</span><span class="detail-id">Product ID: ${escapeHtml(product.product_id || "Unavailable")}</span></div><p class="detail-description">${escapeHtml(product.description || "")}</p><div class="variant-grid">${product.variants.map(variant => variant.variants?.length ? `<article class="variant-card"><div><h4>${escapeHtml(variant.name)}</h4><p>${variant.variants.length} flavours available</p><small class="detail-id">Category ID: ${escapeHtml(variant.category_id || product.category_id || "Unavailable")}</small><small class="detail-id">Product ID: ${escapeHtml(variant.product_id)}</small></div><button class="btn btn-primary" type="button" data-view="${escapeHtml(variant.product_id)}">View varieties</button></article>` : `<article class="variant-card"><div><h4>${escapeHtml(variant.name)}</h4><small class="detail-id">Category ID: ${escapeHtml(variant.category_id || product.category_id || "Unavailable")}</small><small class="detail-id">Product ID: ${escapeHtml(variant.product_id)}</small><p><span class="detail-label">Price</span><br><strong>${money(variant.price)}</strong><br>${escapeHtml(variant.pack_size || "Pack size unavailable")}</p></div>${variant.stock > 0 ? `<div class="product-actions"><div class="qty-control" data-qty-for="${escapeHtml(variant.product_id)}"><button type="button" data-qty="dec">−</button><span data-qty-value>1</span><button type="button" data-qty="inc">+</button></div><button class="btn btn-primary" type="button" data-add-to-cart="${escapeHtml(variant.product_id)}">Add to cart</button></div>` : "<span class=\"product-state coming-soon\">Out of stock</span>"}</article>`).join("")}</div></div></div>`;
+        detail.innerHTML = `<div class="product-detail-layout"><div class="product-image-panel"><img src="${escapeHtml(productImage(product))}" alt="${escapeHtml(product.name)}" /></div><div class="product-detail-copy"><h2>${escapeHtml(product.name)}</h2><div class="detail-meta"><span>${escapeHtml(product.category || "GharSe Snacks")}</span><span class="detail-id">Category ID: ${escapeHtml(product.category_id || "Unavailable")}</span></div><p class="detail-description">${escapeHtml(product.description || "")}</p><div class="variant-grid">${product.variants.map(variant => variant.variants?.length ? `<article class="variant-card"><small class="variant-id">Product ID: ${escapeHtml(variant.product_id)}</small><div><h4>${escapeHtml(variant.name)}</h4><p>${variant.variants.length} flavours available</p></div><button class="btn btn-primary" type="button" data-view="${escapeHtml(variant.product_id)}">View varieties</button></article>` : `<article class="variant-card"><small class="variant-id">Product ID: ${escapeHtml(variant.product_id)}</small><div><h4>${escapeHtml(variant.name)}</h4><p><span class="detail-label">Price</span><strong>${money(variant.price)}</strong><br>${escapeHtml(variant.pack_size || "Pack size unavailable")}<br><span class="variant-quantity">${escapeHtml(variantQuantityLabel(variant))}</span></p></div>${variant.stock > 0 ? `<div class="product-actions"><div class="qty-control" data-qty-for="${escapeHtml(variant.product_id)}"><button type="button" data-qty="dec">−</button><span data-qty-value>1</span><button type="button" data-qty="inc">+</button></div><button class="btn btn-primary" type="button" data-add-to-cart="${escapeHtml(variant.product_id)}">Add to cart</button></div>` : "<span class=\"product-state coming-soon\">Out of stock</span>"}</article>`).join("")}</div></div></div>`;
         openModal("productModal");
         return;
     }
@@ -1343,9 +1365,7 @@ async function openProductDetail(
                 >
 
                     ${
-                        available
-                            ? `${Number(product.stock)} packs available`
-                            : "Out of stock"
+                        detailQuantityLabel(product)
                     }
 
                 </span>
@@ -1422,7 +1442,7 @@ async function openProductDetail(
                 <p class="detail-stock" aria-live="polite">
                     ${
                         available
-                            ? `Stock vault: ${Number(product.stock)} pack${Number(product.stock) === 1 ? "" : "s"} ready to ship`
+                            ? (product.category_id === "GSS_AHM_001" ? "Quantity unknown" : `Stock vault: ${Number(product.stock)} pack${Number(product.stock) === 1 ? "" : "s"} ready to ship`)
                             : "This product is currently out of stock."
                     }
                 </p>
