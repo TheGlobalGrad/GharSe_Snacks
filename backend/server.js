@@ -69,7 +69,7 @@ app.get('/api/health', async(_req, res) => {
 });
 app.get('/api/products', async(_req, res) => {
     try {
-        const products = await q(`SELECT p.product_id,p.category_id,p.name,p.description,p.price,p.stock,p.pack_size,p.image_url,p.is_coming_soon,c.city,c.name AS category_name FROM products p JOIN categories c ON c.category_id=p.category_id WHERE p.is_active=1 ORDER BY c.display_order,p.display_order`);
+        const products = await q(`SELECT p.product_id,p.category_id,p.name,p.description,p.price,p.stock,p.pack_size,p.image_url,CAST(p.is_coming_soon AS UNSIGNED) AS is_coming_soon,c.city,c.name AS category_name FROM products p JOIN categories c ON c.category_id=p.category_id WHERE p.is_active=1 ORDER BY CAST(SUBSTRING_INDEX(p.category_id, '_', -1) AS UNSIGNED), CAST(SUBSTRING_INDEX(p.product_id, '_', -1) AS UNSIGNED)`);
         res.json({ success: true, products });
     } catch (error) {
         console.error(error);
