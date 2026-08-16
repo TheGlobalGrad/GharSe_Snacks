@@ -2632,6 +2632,33 @@ footer strong {
     max-width: 720px;
 }
 
+/* Bulk call-to-action: keeps the heading prominent without crowding it. */
+.bulk-card-head p {
+    font-size: clamp(1.55rem, 2.3vw, 2rem);
+}
+
+.bulk-cta-row {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-top: 1rem;
+}
+
+.bulk-cta-row .hero-group-btn {
+    margin-top: 0;
+}
+
+.bulk-cta-row .bulk-badge {
+    font-size: 0.9rem;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+    .bulk-card-head p { font-size: 1.45rem; }
+    .bulk-cta-row { align-items: flex-start; flex-direction: column; gap: 0.6rem; }
+}
+
 @media (max-width: 640px) {
     body {
         line-height: 1.55;

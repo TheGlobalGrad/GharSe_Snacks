@@ -264,8 +264,11 @@ app.post('/api/verify-payment', async(req, res) => {
         if (payment.status !== 'paid') {
             const [items] = await connection.query('SELECT * FROM order_items WHERE order_id=?', [payment.order_id]);
             for (const item of items) {
-                const [update] = await connection.query('UPDATE products SET stock=stock-? WHERE product_id=? AND stock>=?', [item.quantity, item.product_id, item.quantity]);
+                const [update] = item.variant_id
+                    ? await connection.query('UPDATE product_variants SET stock=stock-? WHERE variant_id=? AND stock>=?', [item.quantity, item.variant_id, item.quantity])
+                    : await connection.query('UPDATE products SET stock=stock-? WHERE product_id=? AND stock>=?', [item.quantity, item.product_id, item.quantity]);
                 if (!update.affectedRows) throw new Error(`${item.product_name} is no longer available.`);
+                if (item.variant_id) await connection.query('UPDATE products SET stock=GREATEST(stock-?, 0) WHERE product_id=?', [item.quantity, item.product_id]);
                 await connection.query("INSERT INTO inventory_movements (product_id,change_quantity,reason,order_id) VALUES (?,?,'sale',?)", [item.product_id, -item.quantity, payment.order_id]);
             }
             await connection.query("UPDATE payments SET razorpay_payment_id=?,razorpay_signature=?,status='paid',paid_at=NOW() WHERE id=?", [paymentId, signature, payment.id]);

@@ -3,7 +3,7 @@ USE gharse_snacks;
 -- Clean MySQL 8 schema. Importing this file removes existing GharSe Snacks data.
 -- Import in MySQL Workbench after selecting that database. This removes old data.
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS password_reset_tokens, reviews, suggestions, product_interest, bulk_order_enquiries, inventory_movements, payments, order_items, items_ordered, order_details, orders, subscriptions, partner_applications, products, catalog, categories, users;
+DROP TABLE IF EXISTS password_reset_tokens, reviews, suggestions, product_interest, bulk_order_enquiries, inventory_movements, payments, order_items, items_ordered, order_details, orders, subscriptions, partner_applications, product_variants, products, catalog, categories, users;
 SET FOREIGN_KEY_CHECKS = 1;
 
 CREATE TABLE users (
@@ -140,3 +140,12 @@ INSERT INTO product_variants (variant_id,product_id,parent_variant_id,name,descr
 ('GSS_AHM_KHK_PANI','GSS_AHM_KHK_001','GSS_AHM_KHK_COIN','Pani Puri','Pani puri coin khakhra.',200,100,'Images/Logo.jpeg',6),
 ('GSS_AHM_KHK_PIZZA','GSS_AHM_KHK_001','GSS_AHM_KHK_COIN','Pizza Jain','Pizza-style Jain coin khakhra.',200,100,'Images/Logo.jpeg',7),
 ('GSS_AHM_KHK_ACHARI','GSS_AHM_KHK_001','GSS_AHM_KHK_COIN','Achari','Tangy achari coin khakhra.',200,100,'Images/Logo.jpeg',8);
+
+-- One real Spicy Potato Chips product, with small and big packs as variants.
+UPDATE products SET is_active = FALSE WHERE product_id IN ('GSS_IND_SPC_014','GSS_IND_SPC_020');
+INSERT INTO products (product_id,category_id,name,description,price,stock,pack_size,image_url,is_coming_soon,is_active,display_order)
+SELECT 'GSS_IND_PTC_014','GSS_IND_003','Spicy Potato Chips','Crispy spicy potato chips in small and sharing packs.',NULL,108,NULL,'Images/Spicy Potato Chips.jpeg',FALSE,TRUE,1
+WHERE NOT EXISTS (SELECT 1 FROM products WHERE product_id = 'GSS_IND_PTC_014');
+INSERT INTO product_variants (variant_id,product_id,parent_variant_id,name,description,price,stock,pack_size,image_url,display_order) VALUES
+('GSS_IND_PTC_001','GSS_IND_PTC_014',NULL,'Small Pack','40g snackable packet.',30,83,'40g packet','Images/Spicy Potato Chips.jpeg',1),
+('GSS_IND_PTC_002','GSS_IND_PTC_014',NULL,'Big Pack','120g sharing packet.',75,25,'120g packet','Images/Spicy Potato Chips.jpeg',2);
