@@ -1,6 +1,9 @@
 -- Run this non-destructive migration on an existing gharse_snacks database.
 USE gharse_snacks;
 
+DELETE FROM product_interest WHERE product_id IN ('GSS_AHM_SYC_009', 'GSS_AHM_BHK_012');
+DELETE FROM reviews WHERE product_id IN ('GSS_AHM_SYC_009', 'GSS_AHM_BHK_012');
+DELETE FROM products WHERE product_id IN ('GSS_AHM_SYC_009', 'GSS_AHM_BHK_012');
 CREATE TABLE IF NOT EXISTS product_variants (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, variant_id VARCHAR(40) NOT NULL UNIQUE, product_id VARCHAR(40) NOT NULL,
  parent_variant_id VARCHAR(40) NULL, name VARCHAR(160) NOT NULL, description TEXT NOT NULL, price DECIMAL(10,2), stock INT UNSIGNED NOT NULL DEFAULT 0,

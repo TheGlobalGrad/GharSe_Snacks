@@ -15,6 +15,7 @@ const API_BASE =
 // =====================================================
 
 let PRODUCTS = [];
+let ORDERABLE_PRODUCTS = [];
 let CART = [];
 
 let CURRENT_USER = JSON.parse(
@@ -54,7 +55,7 @@ const PRODUCT_IMAGE_FILES = {
 
     "beetroot chips": "Images/Beetroot Chips.jpeg",
 
-    "coming soon": "Images/Coming Soon.jpeg"
+    "khakhra": "Images/Khakhra.jpeg"
 };
 
 
@@ -347,17 +348,10 @@ function productImage(product) {
         .trim()
         .toLowerCase();
 
-    if (
-        Number(product.stock) <= 0 ||
-        product.price == null
-    ) {
-        return "Images/Coming Soon.jpeg";
-    }
-
     const imagePath =
         PRODUCT_IMAGE_FILES[name] ||
         product.image_url ||
-        "Images/Coming Soon.jpeg";
+        "Images/Logo.jpeg";
 
     // Make image paths work correctly from the frontend root
     return imagePath.replace(/^\/?Images\//i, "Images/");
@@ -654,21 +648,21 @@ async function loadProducts() {
     if (!grid) return;
     try {
         const data = await api("/api/products");
-        PRODUCTS = data.products.map(dbProduct => ({
-            product_id: String(dbProduct.product_id),
-            category_id: String(dbProduct.category_id),
-            name: dbProduct.name,
-            description: dbProduct.description,
-            price: Number(dbProduct.price),
-            stock: Number(dbProduct.stock),
-            image_url: dbProduct.image_url || "Images/Coming Soon.jpeg",
-            city: dbProduct.city,
-            category: dbProduct.category_name,
-            pack_size: dbProduct.pack_size || ""
-        }));
+        const normalise = (item, parent = {}) => ({
+            product_id: String(item.variant_id || item.product_id),
+            category_id: String(item.category_id || parent.category_id || ""),
+            name: item.name, description: item.description, price: Number(item.price), stock: Number(item.stock),
+            image_url: item.image_url || "Images/Logo.jpeg", city: item.city || parent.city,
+            category: item.category_name || parent.category, pack_size: item.pack_size || "",
+            variants: (item.variants || []).map(variant => normalise(variant, { category_id: item.category_id || parent.category_id, city: item.city || parent.city, category: item.category_name || parent.category }))
+        });
+        PRODUCTS = data.products.map(product => normalise(product));
+        const leaves = list => list.flatMap(product => product.variants.length ? leaves(product.variants) : [product]);
+        ORDERABLE_PRODUCTS = leaves(PRODUCTS);
     } catch (err) {
         console.error("Product API failed:", err);
         PRODUCTS = [];
+        ORDERABLE_PRODUCTS = [];
     }
     renderProducts();
 }
@@ -975,10 +969,12 @@ function renderProducts() {
                             <span class="product-price">
 
                                 ${
-                                    p.price != null &&
+                                    p.variants?.length
+                                        ? `${p.variants.length} varieties`
+                                        : p.price != null &&
                                     Number(p.price) > 0
                                         ? money(p.price)
-                                        : "Coming soon"
+                                        : "Out of stock"
                                 }
 
                             </span>
@@ -1022,9 +1018,11 @@ function renderProducts() {
                             >
 
                                 ${
-                                    Number(p.stock) > 0
+                                    p.variants?.length
+                                        ? `${p.variants.length} varieties available`
+                                        : Number(p.stock) > 0
                                         ? `${Number(p.stock)} packs available`
-                                        : "Will be available soon"
+                                        : "Out of stock"
                                 }
 
                             </span>
@@ -1041,7 +1039,7 @@ function renderProducts() {
                         </div>
 
 
-                        <div class="product-actions">
+                        ${p.variants?.length ? "" : `<div class="product-actions">
 
                             <div
                                 class="qty-control"
@@ -1083,7 +1081,7 @@ function renderProducts() {
 
                             </button>
 
-                        </div>
+                        </div>`}
 
                     </article>
 
@@ -1268,13 +1266,15 @@ async function openProductDetail(
         String(productId);
 
 
-    const product =
-        PRODUCTS.find(
-            (p) =>
-            String(
-                p.product_id || ""
-            ) === id
-        );
+    const findProduct = list => {
+        for (const item of list) {
+            if (String(item.product_id || "") === id) return item;
+            const match = item.variants?.length ? findProduct(item.variants) : null;
+            if (match) return match;
+        }
+        return null;
+    };
+    const product = findProduct(PRODUCTS);
 
 
     if (!product) {
@@ -1286,6 +1286,14 @@ async function openProductDetail(
 
         return;
 
+    }
+
+    if (product.variants?.length) {
+        const detail = document.getElementById("productDetail");
+        if (!detail) return;
+        detail.innerHTML = `<div class="product-detail-layout"><div class="product-image-panel"><img src="${escapeHtml(productImage(product))}" alt="${escapeHtml(product.name)}" /></div><div class="product-detail-copy"><h2>${escapeHtml(product.name)}</h2><p class="detail-description">${escapeHtml(product.description || "")}</p><div class="variant-grid">${product.variants.map(variant => variant.variants?.length ? `<article class="variant-card"><div><h4>${escapeHtml(variant.name)}</h4><p>${variant.variants.length} flavours available</p></div><button class="btn btn-primary" type="button" data-view="${escapeHtml(variant.product_id)}">View varieties</button></article>` : `<article class="variant-card"><div><h4>${escapeHtml(variant.name)}</h4><p>${escapeHtml(variant.pack_size || "")}${variant.stock > 0 ? ` · ${variant.stock} packs left` : " · Out of stock"}</p></div><strong>${money(variant.price)}</strong>${variant.stock > 0 ? `<div class="product-actions"><div class="qty-control" data-qty-for="${escapeHtml(variant.product_id)}"><button type="button" data-qty="dec">−</button><span data-qty-value>1</span><button type="button" data-qty="inc">+</button></div><button class="btn btn-primary" type="button" data-add-to-cart="${escapeHtml(variant.product_id)}">Add to cart</button></div>` : "<span class=\"product-state coming-soon\">Out of stock</span>"}</article>`).join("")}</div></div></div>`;
+        openModal("productModal");
+        return;
     }
 
 
@@ -1350,7 +1358,7 @@ async function openProductDetail(
                     ${
                         available
                             ? `${Number(product.stock)} packs available`
-                            : "Coming soon"
+                            : "Out of stock"
                     }
 
                 </span>
@@ -1428,7 +1436,7 @@ async function openProductDetail(
                     ${
                         available
                             ? `Stock vault: ${Number(product.stock)} pack${Number(product.stock) === 1 ? "" : "s"} ready to ship`
-                            : "This regional favourite is not available for checkout yet."
+                            : "This product is currently out of stock."
                     }
                 </p>
 
@@ -1455,7 +1463,7 @@ async function openProductDetail(
                                         product.price
                                     )
 
-                                    : "Coming soon"
+                                    : "Out of stock"
                             }
 
                         </strong>
@@ -2002,7 +2010,7 @@ async function addToCart(
 
 
     const product =
-        PRODUCTS.find(
+        ORDERABLE_PRODUCTS.find(
             (p) =>
                 String(
                     p.product_id || ""

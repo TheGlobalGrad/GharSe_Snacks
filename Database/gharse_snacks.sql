@@ -149,3 +149,6 @@ WHERE NOT EXISTS (SELECT 1 FROM products WHERE product_id = 'GSS_IND_PTC_014');
 INSERT INTO product_variants (variant_id,product_id,parent_variant_id,name,description,price,stock,pack_size,image_url,display_order) VALUES
 ('GSS_IND_PTC_001','GSS_IND_PTC_014',NULL,'Small Pack','40g snackable packet.',30,83,'40g packet','Images/Spicy Potato Chips.jpeg',1),
 ('GSS_IND_PTC_002','GSS_IND_PTC_014',NULL,'Big Pack','120g sharing packet.',75,25,'120g packet','Images/Spicy Potato Chips.jpeg',2);
+
+-- Discontinued Ahmedabad products are removed from the catalogue entirely.
+DELETE FROM products WHERE product_id IN ('GSS_AHM_SYC_009', 'GSS_AHM_BHK_012');
