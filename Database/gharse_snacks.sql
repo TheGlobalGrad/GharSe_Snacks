@@ -3,7 +3,7 @@ USE gharse_snacks;
 -- Clean MySQL 8 schema. Importing this file removes existing GharSe Snacks data.
 -- Import in MySQL Workbench after selecting that database. This removes old data.
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS password_reset_tokens, reviews, suggestions, product_interest, bulk_order_enquiries, inventory_movements, payments, order_items, items_ordered, order_details, orders, subscriptions, partner_applications, products, catalog, categories, users;
+DROP TABLE IF EXISTS password_reset_tokens, reviews, suggestions, product_interest, bulk_order_enquiries, inventory_movements, payments, order_items, items_ordered, order_details, orders, subscriptions, partner_applications, product_variants, products, catalog, categories, users;
 SET FOREIGN_KEY_CHECKS = 1;
 
 CREATE TABLE users (
@@ -13,7 +13,7 @@ CREATE TABLE users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE categories (
- id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, category_idw VARCHAR(32) NOT NULL UNIQUE, city VARCHAR(80) NOT NULL UNIQUE, state VARCHAR(80) NOT NULL, name VARCHAR(120) NOT NULL, display_order SMALLINT UNSIGNED NOT NULL, is_coming_soon BOOLEAN NOT NULL DEFAULT FALSE
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, category_id VARCHAR(32) NOT NULL UNIQUE, city VARCHAR(80) NOT NULL UNIQUE, state VARCHAR(80) NOT NULL, name VARCHAR(120) NOT NULL, display_order SMALLINT UNSIGNED NOT NULL, is_coming_soon BOOLEAN NOT NULL DEFAULT FALSE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE products (

@@ -8,7 +8,6 @@ CREATE TABLE IF NOT EXISTS product_variants (
  CONSTRAINT fk_product_variants_product FOREIGN KEY (product_id) REFERENCES products(product_id),
  CONSTRAINT fk_product_variants_parent FOREIGN KEY (parent_variant_id) REFERENCES product_variants(variant_id)
 );
-ALTER TABLE order_items ADD COLUMN variant_id VARCHAR(40) NULL AFTER product_id;
 UPDATE categories SET is_coming_soon = FALSE WHERE category_id = 'GSS_AHM_001';
 UPDATE products SET is_active = FALSE WHERE product_id IN ('GSS_AHM_MKH_001','GSS_AHM_MTH_002','GSS_AHM_JKH_003','GSS_AHM_CPP_005','GSS_AHM_CPN_006','GSS_AHM_CJN_007','GSS_AHM_CAC_008');
 INSERT INTO products (product_id,category_id,name,description,price,stock,pack_size,image_url,is_coming_soon,is_active,display_order)
