@@ -47,13 +47,25 @@ async function createOrFindBulkCustomer({ name, email, phone, state, address }) 
 }
 
 let razorpay = null;
-if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) razorpay = new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET });
+const razorpayConfigured = Boolean(
+    process.env.RAZORPAY_KEY_ID &&
+    process.env.RAZORPAY_KEY_SECRET &&
+    !process.env.RAZORPAY_KEY_ID.includes('replace_me') &&
+    !process.env.RAZORPAY_KEY_SECRET.includes('replace_me')
+);
+if (razorpayConfigured) razorpay = new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET });
 
 app.get('/test-db', async(_req, res) => {
     try {
         await q('SELECT 1');
         res.json({ success: true, message: 'MySQL connected successfully!' });
     } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+app.get('/api/health', async(_req, res) => {
+    try {
+        await q('SELECT 1');
+        res.json({ success: true, database: 'connected', payments: razorpayConfigured ? 'configured' : 'not configured', email: getMailTransport() ? 'configured' : 'not configured' });
+    } catch (error) { res.status(503).json({ success: false, database: 'unavailable', error: error.message }); }
 });
 app.get('/api/products', async(_req, res) => {
     try {

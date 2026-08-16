@@ -1,5 +1,6 @@
+CREATE DATABASE IF NOT EXISTS gharse_snacks CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE gharse_snacks;
--- Clean MySQL 8 schema for the existing `gharse_snacks` database.
+-- Clean MySQL 8 schema. Importing this file removes existing GharSe Snacks data.
 -- Import in MySQL Workbench after selecting that database. This removes old data.
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS password_reset_tokens, reviews, suggestions, product_interest, bulk_order_enquiries, inventory_movements, payments, order_items, items_ordered, order_details, orders, subscriptions, partner_applications, products, catalog, categories, users;

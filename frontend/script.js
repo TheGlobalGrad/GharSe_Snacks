@@ -443,10 +443,7 @@ function productImage(product) {
         .trim()
         .toLowerCase();
 
-    if (
-        Number(product.stock) <= 0 ||
-        product.price == null
-    ) {
+    if (product.is_coming_soon || product.isComingSoon) {
         return "Images/Coming Soon.jpeg";
     }
 
@@ -564,6 +561,11 @@ function initReveal() {
         document.querySelectorAll(
             ".reveal"
         );
+
+    if (!("IntersectionObserver" in window)) {
+        items.forEach((item) => item.classList.add("is-visible"));
+        return;
+    }
 
     const observer =
         new IntersectionObserver(
@@ -758,6 +760,7 @@ async function loadProducts() {
             price: Number(dbProduct.price),
             stock: Number(dbProduct.stock),
             image_url: dbProduct.image_url || "Images/Coming Soon.jpeg",
+            is_coming_soon: Boolean(dbProduct.is_coming_soon),
             city: dbProduct.city,
             category: dbProduct.category_name,
             pack_size: dbProduct.pack_size || ""
@@ -783,20 +786,15 @@ async function loadProducts() {
 }
 
 function buildDisplayProducts(rawProducts) {
-    const chips = rawProducts.filter(p => p.product_id === "GSS_IND_SPC_014" || p.product_id === "GSS_IND_SPC_020");
-    const khakhras = rawProducts.filter(p => p.category_id === "GSS_AHM_001" && /khakhra/i.test(p.name));
-    const hiddenIds = new Set([...chips, ...khakhras].map(p => p.product_id));
-    const visible = rawProducts.filter(p => !hiddenIds.has(p.product_id));
-    const collection = (id, name, description, variants, image) => ({
-        product_id: id, name, description, variants, is_collection: true,
-        category_id: variants[0]?.category_id || "", city: variants[0]?.city || "Ahmedabad",
-        category: variants[0]?.category || "Regional favourites", image_url: image,
-        stock: variants.reduce((sum, variant) => sum + Number(variant.stock || 0), 0),
-        price: null, pack_size: "Choose a variety in details"
-    });
-    if (chips.length) visible.push(collection("collection-potato-chips", "Spicy Potato Chips", "Choose your crunch: a snackable 40g packet or a generous 120g sharing pack.", chips, "Images/Spicy Potato Chips.jpeg"));
-    if (khakhras.length) visible.push(collection("collection-khakhra", "Khakhra Collection", "One Gujarati favourite, many flavours. Explore classic khakhra and playful coin khakhra varieties.", khakhras, "Images/Coming Soon.jpeg"));
-    return visible;
+    // Every pack/variant is a real product: keep the catalogue in category
+    // ID then product ID order, rather than moving variants into end-of-list
+    // collection cards.
+    const sequence = product => Number((String(product.product_id).match(/_(\d+)$/) || [0, 0])[1]);
+    return [...rawProducts].sort((a, b) =>
+        String(a.category_id).localeCompare(String(b.category_id), undefined, { numeric: true }) ||
+        sequence(a) - sequence(b) ||
+        String(a.product_id).localeCompare(String(b.product_id), undefined, { numeric: true })
+    );
 }
 
 
@@ -1104,7 +1102,7 @@ function renderProducts() {
                                     p.price != null &&
                                     Number(p.price) > 0
                                         ? money(p.price)
-                                        : p.is_collection ? "Choose variety" : "Coming soon"
+                                        : p.is_coming_soon ? "Coming soon" : "Out of stock"
                                 }
 
                             </span>
@@ -1148,11 +1146,9 @@ function renderProducts() {
                             >
 
                                 ${
-                                    p.is_collection
-                                        ? `${p.variants.length} varieties to explore`
-                                        : Number(p.stock) > 0
+                                    Number(p.stock) > 0
                                             ? `${Number(p.stock)} packs available`
-                                            : "Will be available soon"
+                                            : p.is_coming_soon ? "Will be available soon" : "Currently out of stock"
                                 }
 
                             </span>
@@ -1171,7 +1167,7 @@ function renderProducts() {
 
                         <div class="product-actions">
 
-                            ${p.is_collection ? `<div class="collection-banner">Open details to compare flavours, pack sizes and availability.</div>` : `<div
+                            <div
                                 class="qty-control"
                                 data-qty-for="${escapeHtml(productId)}"
                             >
@@ -1194,10 +1190,10 @@ function renderProducts() {
                                     +
                                 </button>
 
-                            </div>`}
+                            </div>
 
 
-                            ${p.is_collection || p.is_preview ? "" : `<button
+                            ${p.is_preview ? "" : `<button
                                 class="btn btn-primary"
                                 type="button"
                                 data-add-to-cart="${escapeHtml(productId)}"
@@ -1491,7 +1487,7 @@ async function openProductDetail(
                     ${
                         available
                             ? `${Number(product.stock)} packs available`
-                            : "Coming soon"
+                            : product.is_coming_soon ? "Coming soon" : "Out of stock"
                     }
 
                 </span>
@@ -1569,7 +1565,9 @@ async function openProductDetail(
                     ${
                         available
                             ? `Stock vault: ${Number(product.stock)} pack${Number(product.stock) === 1 ? "" : "s"} ready to ship`
-                            : "This regional favourite is not available for checkout yet."
+                            : product.is_coming_soon
+                                ? "This product is launching soon and cannot be ordered yet."
+                                : "This product is currently sold out. Use Notify me to receive an availability alert."
                     }
                 </p>
 
@@ -2626,6 +2624,8 @@ document.addEventListener(
                 "button[type=submit]"
             );
 
+        let paymentWindowOpen = false;
+
 
         if (submitBtn) {
 
@@ -2782,6 +2782,12 @@ document.addEventListener(
                                 true
                             );
 
+                        } finally {
+
+                            paymentWindowOpen = false;
+
+                            if (submitBtn) submitBtn.disabled = false;
+
                         }
 
                     },
@@ -2792,17 +2798,32 @@ document.addEventListener(
                     color:
                         "#a4100d"
 
+                },
+
+                modal: {
+                    ondismiss: () => {
+                        paymentWindowOpen = false;
+                        if (submitBtn) submitBtn.disabled = false;
+                    }
                 }
 
             };
 
 
-            const rzp =
-                new Razorpay(
-                    options
-                );
+            if (typeof Razorpay !== "function") {
+                throw new Error("The payment window could not load. Please check your internet connection and try again.");
+            }
+
+            const rzp = new Razorpay(options);
+
+            rzp.on("payment.failed", (response) => {
+                showToast(response.error?.description || "Payment was not completed. Your cart is still saved.", true);
+                paymentWindowOpen = false;
+                if (submitBtn) submitBtn.disabled = false;
+            });
 
 
+            paymentWindowOpen = true;
             rzp.open();
 
 
@@ -2815,7 +2836,7 @@ document.addEventListener(
 
         } finally {
 
-            if (submitBtn) {
+            if (submitBtn && !paymentWindowOpen) {
 
                 submitBtn.disabled =
                     false;
@@ -3909,6 +3930,8 @@ document.addEventListener(
         initCarousel();
 
         loadProducts();
+
+        loadProductRatings();
 
         loadCart();
 
