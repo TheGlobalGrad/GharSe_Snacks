@@ -1,0 +1,17 @@
+node_modules/
+.env
+.env.*
+!.env.example
+npm-debug.log*
+# Local Node runtime shims generated for the backend.
+backend/node.exe
+backend/node.js
+backend/corepack
+backend/corepack.cmd
+backend/nodevars.bat
+backend/npm
+backend/npm.cmd
+backend/npm.ps1
+backend/npx
+backend/npx.cmd
+backend/npx.ps1
