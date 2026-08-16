@@ -50,9 +50,9 @@ const PRODUCT_IMAGE_FILES = {
 
     "thepla": "Images/Thepla.jpeg",
 
-    "raagi chips": "Images/Coming Soon.jpeg",
+    "raagi chips": "Images/Ragi Chips.jpeg",
 
-    "beetroot chips": "Images/Coming Soon.jpeg",
+    "beetroot chips": "Images/Beetroot Chips.jpeg",
 
     "coming soon": "Images/Coming Soon.jpeg"
 };
