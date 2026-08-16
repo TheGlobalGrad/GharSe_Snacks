@@ -243,7 +243,7 @@ function money(value) {
 }
 
 function productCardLabel(product) {
-    if (product.variants?.length) return `${product.variants.length} varieties`;
+    if (product.variants ? .length) return `${product.variants.length} varieties`;
     return Number(product.price) > 0 ? money(product.price) : "Price unavailable";
 }
 
@@ -669,9 +669,14 @@ async function loadProducts() {
             product_id: String(item.variant_id || item.product_id),
             parent_product_id: String(item.product_id || parent.parent_product_id || ""),
             category_id: String(item.category_id || parent.category_id || ""),
-            name: item.name, description: item.description, price: Number(item.price), stock: Number(item.stock),
-            image_url: item.image_url || "Images/Logo.jpeg", city: item.city || parent.city,
-            category: item.category_name || parent.category, pack_size: item.pack_size || "",
+            name: item.name,
+            description: item.description,
+            price: Number(item.price),
+            stock: Number(item.stock),
+            image_url: item.image_url || "Images/Logo.jpeg",
+            city: item.city || parent.city,
+            category: item.category_name || parent.category,
+            pack_size: item.pack_size || "",
             variants: (item.variants || []).map(variant => normalise(variant, { category_id: item.category_id || parent.category_id, city: item.city || parent.city, category: item.category_name || parent.category }))
         });
         PRODUCTS = data.products.map(product => normalise(product));
@@ -2600,6 +2605,8 @@ document.addEventListener(
                             persistCart();
 
                             renderCart();
+
+                            await loadProducts();
 
 
                             closeModal(

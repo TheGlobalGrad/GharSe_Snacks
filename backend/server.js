@@ -302,11 +302,35 @@ app.post('/api/product-interest', async(req, res) => {
     try {
         const users = await q('SELECT email FROM users WHERE id=?', [userId]);
         if (!users.length) return res.status(401).json({ success: false, error: 'Please log in again.' });
-        await q('INSERT INTO product_interest (product_id,email) VALUES (?,?)', [productId, users[0].email]);
+        const targets = await q('SELECT product_id FROM products WHERE product_id=? UNION SELECT product_id FROM product_variants WHERE variant_id=? LIMIT 1', [productId, productId]);
+        if (!targets.length) return res.status(400).json({ success: false, error: 'Invalid product.' });
+        await q('INSERT INTO product_interest (product_id,email) VALUES (?,?)', [targets[0].product_id, users[0].email]);
         res.status(201).json({ success: true });
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') return res.json({ success: true, alreadyRequested: true });
         res.status(500).json({ success: false, error: 'Could not save your request.' });
+    }
+});
+
+app.post('/api/admin/restock', async(req, res) => {
+    const token = clean(req.get('x-inventory-token'), 255);
+    const variantId = clean(req.body.variantId, 40);
+    const quantity = Number(req.body.quantity);
+    if (!process.env.INVENTORY_ADMIN_TOKEN || token !== process.env.INVENTORY_ADMIN_TOKEN) return res.status(401).json({ success: false, error: 'Unauthorized inventory request.' });
+    if (!variantId || !Number.isInteger(quantity) || quantity < 1) return res.status(400).json({ success: false, error: 'Provide a variant ID and a positive quantity.' });
+    try {
+        const variants = await q('SELECT v.variant_id,v.product_id,v.name,p.name AS product_name FROM product_variants v JOIN products p ON p.product_id=v.product_id WHERE v.variant_id=? LIMIT 1', [variantId]);
+        if (!variants.length) return res.status(404).json({ success: false, error: 'Variant not found.' });
+        const variant = variants[0];
+        await q('UPDATE product_variants SET stock=stock+? WHERE variant_id=?', [quantity, variantId]);
+        await q('UPDATE products SET stock=stock+? WHERE product_id=?', [quantity, variant.product_id]);
+        const alerts = await q('SELECT email FROM product_interest WHERE product_id=?', [variant.product_id]);
+        await Promise.all(alerts.map(alert => sendEmail(alert.email, `${variant.product_name} is back in stock`, `<p>Good news!</p><p>${esc(variant.product_name)} — ${esc(variant.name)} is back in stock. Visit GharSe Snacks to order it.</p>`)));
+        await q('DELETE FROM product_interest WHERE product_id=?', [variant.product_id]);
+        res.json({ success: true, notified: alerts.length });
+    } catch (error) {
+        console.error('Restock:', error);
+        res.status(500).json({ success: false, error: 'Could not restock this variant.' });
     }
 });
 app.post('/api/suggestions', async(req, res) => {
