@@ -244,14 +244,13 @@ function money(value) {
 
 function productCardLabel(product) {
     if (product.variants?.length) return `${product.variants.length} varieties`;
-    if (Number(product.stock) <= 0) return "Out of stock";
     return Number(product.price) > 0 ? money(product.price) : "Price unavailable";
 }
 
 function variantQuantityLabel(variant) {
     if (variant.category_id === "GSS_AHM_001") return "Quantity unknown";
-    if (variant.product_id === "GSS_IND_PTC_001") return `${Number(variant.stock)} small packets left`;
-    if (variant.product_id === "GSS_IND_PTC_002") return `${Number(variant.stock)} big packets left`;
+    if (variant.product_id === "GSS_IND_PTC_012") return `${Number(variant.stock)} small packets left`;
+    if (variant.product_id === "GSS_IND_PTC_013") return `${Number(variant.stock)} big packets left`;
     return Number(variant.stock) > 0 ? `${Number(variant.stock)} packs left` : "Out of stock";
 }
 
@@ -984,7 +983,7 @@ function renderProducts() {
 
                             </div>
 
-                            <span class="product-price ${Number(p.stock) <= 0 && !p.variants?.length ? "coming-soon" : ""}">
+                            <span class="product-price">
                                 ${escapeHtml(productCardLabel(p))}
                             </span>
 
@@ -1438,15 +1437,6 @@ async function openProductDetail(
                     )}
 
                 </p>
-
-                <p class="detail-stock" aria-live="polite">
-                    ${
-                        available
-                            ? (product.category_id === "GSS_AHM_001" ? "Quantity unknown" : `Stock vault: ${Number(product.stock)} pack${Number(product.stock) === 1 ? "" : "s"} ready to ship`)
-                            : "This product is currently out of stock."
-                    }
-                </p>
-
 
                 <div class="detail-purchase">
 

@@ -167,6 +167,8 @@ img {
     color: var(--muted);
     font-size: 0.98rem;
     line-height: 1.15;
+    font-family: 'Kalam', 'Segoe UI', sans-serif;
+    font-weight: 700;
 }
 
 .brand-text small::before {
@@ -3085,6 +3087,22 @@ footer strong {
     .hero-card>.carousel-slide>p {
         font-size: .84rem;
     }
+}
+
+.variant-card .product-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: .7rem;
+    margin-top: .25rem;
+}
+
+.variant-card .product-actions .btn {
+    width: auto;
+    margin: 0;
+    padding: .58rem .85rem;
+    border-radius: 999px;
 }
 
 .variant-id {

@@ -3,7 +3,7 @@ USE gharse_snacks;
 -- Clean MySQL 8 schema. Importing this file removes existing GharSe Snacks data.
 -- Import in MySQL Workbench after selecting that database. This removes old data.
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS password_reset_tokens, reviews, suggestions, product_interest, bulk_order_enquiries, inventory_movements, payments, order_items, items_ordered, order_details, orders, subscriptions, partner_applications, product_variants, products, catalog, categories, users;
+DROP TABLE IF EXISTS password_reset_tokens, reviews, suggestions, product_interest, bulk_order_enquiries, inventory_movements, payments, order_items, items_ordered, order_details, orders, subscriptions, partner_applications, products, catalog, categories, users;
 SET FOREIGN_KEY_CHECKS = 1;
 
 CREATE TABLE users (
@@ -13,7 +13,7 @@ CREATE TABLE users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE categories (
- id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, category_id VARCHAR(32) NOT NULL UNIQUE, city VARCHAR(80) NOT NULL UNIQUE, state VARCHAR(80) NOT NULL, name VARCHAR(120) NOT NULL, display_order SMALLINT UNSIGNED NOT NULL, is_coming_soon BOOLEAN NOT NULL DEFAULT FALSE
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, category_idw VARCHAR(32) NOT NULL UNIQUE, city VARCHAR(80) NOT NULL UNIQUE, state VARCHAR(80) NOT NULL, name VARCHAR(120) NOT NULL, display_order SMALLINT UNSIGNED NOT NULL, is_coming_soon BOOLEAN NOT NULL DEFAULT FALSE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE products (
@@ -114,7 +114,7 @@ UPDATE products
 UPDATE products SET stock = 32 WHERE product_id = 'GSS_RAT_SEV_019';
 
 INSERT INTO products (product_id, category_id, name, description, price, stock, pack_size, image_url, is_coming_soon, is_active, display_order)
-SELECT 'GSS_IND_SPC_020', 'GSS_IND_003', 'Potato Chips — 120g', 'Sharing potato chips packet.', 69, 25, '120g / packet', 'Images/Spicy Potato Chips.jpeg', FALSE, TRUE, 2
+SELECT 'GSS_IND_SPC_020', 'GSS_IND_003', 'Spicy Potato Chips — Big', 'Spicy potato chips in a generous sharing packet.', 75, 25, '120g packet', 'Images/Spicy Potato Chips.jpeg', FALSE, TRUE, 2
 WHERE NOT EXISTS (SELECT 1 FROM products WHERE product_id = 'GSS_IND_SPC_020');
 
 -- Ahmedabad catalogue: available now, grouped as Khakhra > Coin Khakhra in the storefront.
@@ -132,23 +132,44 @@ INSERT INTO products (product_id,category_id,name,description,price,stock,pack_s
 SELECT 'GSS_AHM_KHK_001','GSS_AHM_001','Khakhra','Classic and coin khakhra in your favourite flavours.',NULL,800,NULL,'Images/Logo.jpeg',FALSE,TRUE,1
 WHERE NOT EXISTS (SELECT 1 FROM products WHERE product_id = 'GSS_AHM_KHK_001');
 INSERT INTO product_variants (variant_id,product_id,parent_variant_id,name,description,price,stock,image_url,display_order) VALUES
-('GSS_AHM_KHK_001','GSS_AHM_KHK_001',NULL,'Masala Khakhra','Crispy Gujarati masala khakhra.',150,100,'Images/Logo.jpeg',1),
-('GSS_AHM_KHK_002','GSS_AHM_KHK_001',NULL,'Methi Khakhra','Classic methi khakhra.',150,100,'Images/Logo.jpeg',2),
-('GSS_AHM_KHK_003','GSS_AHM_KHK_001',NULL,'Jeera Khakhra','Light and crispy jeera khakhra.',150,100,'Images/Logo.jpeg',3),
-('GSS_AHM_KHK_004','GSS_AHM_KHK_001',NULL,'Coin Khakhra','Bite-sized coin khakhra.',NULL,0,'Images/Logo.jpeg',4),
-('GSS_AHM_KHK_005','GSS_AHM_KHK_001','GSS_AHM_KHK_004','Peri Peri','Spicy peri peri coin khakhra.',200,100,'Images/Logo.jpeg',5),
-('GSS_AHM_KHK_006','GSS_AHM_KHK_001','GSS_AHM_KHK_004','Pani Puri','Pani puri coin khakhra.',200,100,'Images/Logo.jpeg',6),
-('GSS_AHM_KHK_007','GSS_AHM_KHK_001','GSS_AHM_KHK_004','Pizza Jain','Pizza-style Jain coin khakhra.',200,100,'Images/Logo.jpeg',7),
-('GSS_AHM_KHK_008','GSS_AHM_KHK_001','GSS_AHM_KHK_004','Achari','Tangy achari coin khakhra.',200,100,'Images/Logo.jpeg',8);
+('GSS_AHM_KHK_MASALA','GSS_AHM_KHK_001',NULL,'Masala Khakhra','Crispy Gujarati masala khakhra.',150,100,'Images/Logo.jpeg',1),
+('GSS_AHM_KHK_METHI','GSS_AHM_KHK_001',NULL,'Methi Khakhra','Classic methi khakhra.',150,100,'Images/Logo.jpeg',2),
+('GSS_AHM_KHK_JEERA','GSS_AHM_KHK_001',NULL,'Jeera Khakhra','Light and crispy jeera khakhra.',150,100,'Images/Logo.jpeg',3),
+('GSS_AHM_KHK_COIN','GSS_AHM_KHK_001',NULL,'Coin Khakhra','Bite-sized coin khakhra.',NULL,0,'Images/Logo.jpeg',4),
+('GSS_AHM_KHK_PERI','GSS_AHM_KHK_001','GSS_AHM_KHK_COIN','Peri Peri','Spicy peri peri coin khakhra.',200,100,'Images/Logo.jpeg',5),
+('GSS_AHM_KHK_PANI','GSS_AHM_KHK_001','GSS_AHM_KHK_COIN','Pani Puri','Pani puri coin khakhra.',200,100,'Images/Logo.jpeg',6),
+('GSS_AHM_KHK_PIZZA','GSS_AHM_KHK_001','GSS_AHM_KHK_COIN','Pizza Jain','Pizza-style Jain coin khakhra.',200,100,'Images/Logo.jpeg',7),
+('GSS_AHM_KHK_ACHARI','GSS_AHM_KHK_001','GSS_AHM_KHK_COIN','Achari','Tangy achari coin khakhra.',200,100,'Images/Logo.jpeg',8);
 
--- One real Spicy Potato Chips product, with 40g and 120g packet variants.
-UPDATE products SET is_active = FALSE WHERE product_id IN ('GSS_IND_SPC_014','GSS_IND_SPC_020');
-INSERT INTO products (product_id,category_id,name,description,price,stock,pack_size,image_url,is_coming_soon,is_active,display_order)
-SELECT 'GSS_IND_PTC_014','GSS_IND_003','Spicy Potato Chips','Crispy spicy potato chips in small and sharing packs.',NULL,108,NULL,'Images/Spicy Potato Chips.jpeg',FALSE,TRUE,1
-WHERE NOT EXISTS (SELECT 1 FROM products WHERE product_id = 'GSS_IND_PTC_014');
+-- Active catalogue IDs. These match the storefront and API exactly.
+UPDATE products SET is_active = FALSE WHERE product_id IN (
+ 'GSS_AHM_KHK_001','GSS_AHM_THP_004','GSS_AHM_RGC_010','GSS_AHM_BTC_011',
+ 'GSS_BIK_CHJ_013','GSS_IND_SPC_014','GSS_IND_SPC_020','GSS_IND_SPM_015',
+ 'GSS_JAI_BSL_016','GSS_KOC_BNC_017','GSS_PUN_BKW_018','GSS_RAT_SEV_019'
+);
+UPDATE product_variants SET parent_variant_id = NULL WHERE product_id IN ('GSS_AHM_KHK_001','GSS_IND_PTC_014');
+DELETE FROM product_variants WHERE product_id IN ('GSS_AHM_KHK_001','GSS_IND_PTC_014');
+
+INSERT INTO products (product_id,category_id,name,description,price,stock,pack_size,image_url,is_coming_soon,is_active,display_order) VALUES
+('GSS_AHM_KHK_000','GSS_AHM_001','Khakhra','Classic and coin khakhra in your favourite flavours.',NULL,800,NULL,'Images/Khakhra.jpeg',FALSE,TRUE,1),
+('GSS_AHM_THP_008','GSS_AHM_001','Thepla','Soft, spiced Gujarati thepla made for a comforting snack.',60,100,NULL,'Images/Thepla.jpeg',FALSE,TRUE,2),
+('GSS_AHM_RGC_009','GSS_AHM_001','Ragi Chips','Crunchy ragi chips with a wholesome twist.',190,100,NULL,'Images/Ragi Chips.jpeg',FALSE,TRUE,3),
+('GSS_AHM_BTC_010','GSS_AHM_001','Beetroot Chips','Crispy beetroot chips with a distinctive flavour.',190,100,NULL,'Images/Beetroot Chips.jpeg',FALSE,TRUE,4),
+('GSS_BIK_CHJ_011','GSS_BIK_002','Chana Jor','Crunchy spiced chana jor for an anytime snack.',49,0,'100g / packet','Images/Chana Jor.jpeg',FALSE,TRUE,1),
+('GSS_IND_PTC_000','GSS_IND_003','Spicy Potato Chips','Crispy spicy potato chips in small and sharing packs.',NULL,108,NULL,'Images/Spicy Potato Chips.jpeg',FALSE,TRUE,1),
+('GSS_IND_SPM_014','GSS_IND_003','Spicy Parmal (Murmure)','A spicy and crunchy Indori-style parmal and murmure snack.',69,6,'100g / packet','Images/Spicy Parmal (Murmure).jpeg',FALSE,TRUE,2),
+('GSS_JAI_BSL_015','GSS_JAI_004','Besan Ladoo','Traditional besan ladoo with a rich, comforting sweetness.',30,0,'~63g / piece','Images/Besan Ladoo.jpeg',FALSE,TRUE,1),
+('GSS_KOC_BNC_016','GSS_KOC_005','Banana Chips','Crispy banana chips inspired by Kerala''s classic snack.',30,0,'50g / packet','Images/Banana Chips.jpeg',FALSE,TRUE,1),
+('GSS_PUN_BKW_017','GSS_PUN_006','Bhakarwadi','Sweet, spicy and tangy spiral bhakarwadi with a delicious crunch.',89,0,'200g / packet','Images/Bhakarwadi.jpeg',FALSE,TRUE,1),
+('GSS_RAT_SEV_018','GSS_RAT_007','Sev','Crispy and flavourful Ratlami sev, perfect for chai-time snacking.',69,32,'100g / packet','Images/Sev.jpeg',FALSE,TRUE,1);
+
 INSERT INTO product_variants (variant_id,product_id,parent_variant_id,name,description,price,stock,pack_size,image_url,display_order) VALUES
-('GSS_IND_PTC_001','GSS_IND_PTC_014',NULL,'Potato Chips — 40g','Snackable potato chips packet.',30,83,'40g / packet','Images/Spicy Potato Chips.jpeg',1),
-('GSS_IND_PTC_002','GSS_IND_PTC_014',NULL,'Potato Chips — 120g','Sharing potato chips packet.',69,25,'120g / packet','Images/Spicy Potato Chips.jpeg',2);
-
--- Discontinued Ahmedabad products are removed from the catalogue entirely.
-DELETE FROM products WHERE product_id IN ('GSS_AHM_SYC_009', 'GSS_AHM_BHK_012');
+('GSS_AHM_001','GSS_AHM_KHK_000',NULL,'Masala Khakhra','Crispy Gujarati masala khakhra.',150,100,NULL,'Images/Khakhra.jpeg',1),
+('GSS_AHM_KHK_002','GSS_AHM_KHK_000',NULL,'Methi Khakhra','Classic methi khakhra.',150,100,NULL,'Images/Khakhra.jpeg',2),
+('GSS_AHM_KHK_003','GSS_AHM_KHK_000',NULL,'Jeera Khakhra','Light and crispy jeera khakhra.',150,100,NULL,'Images/Khakhra.jpeg',3),
+('GSS_AHM_KHK_004','GSS_AHM_KHK_000',NULL,'Coin Khakhra — Peri Peri','Spicy peri peri coin khakhra.',200,100,NULL,'Images/Khakhra.jpeg',4),
+('GSS_AHM_KHK_005','GSS_AHM_KHK_000',NULL,'Coin Khakhra — Pani Puri','Pani puri coin khakhra.',200,100,NULL,'Images/Khakhra.jpeg',5),
+('GSS_AHM_KHK_006','GSS_AHM_KHK_000',NULL,'Coin Khakhra — Pizza Jain','Pizza-style Jain coin khakhra.',200,100,NULL,'Images/Khakhra.jpeg',6),
+('GSS_AHM_KHK_007','GSS_AHM_KHK_000',NULL,'Coin Khakhra — Achari','Tangy achari coin khakhra.',200,100,NULL,'Images/Khakhra.jpeg',7),
+('GSS_IND_PTC_012','GSS_IND_PTC_000',NULL,'Potato Chips — 40g','Snackable potato chips packet.',30,83,'40g / packet','Images/Spicy Potato Chips.jpeg',1),
+('GSS_IND_PTC_013','GSS_IND_PTC_000',NULL,'Potato Chips — 120g','Sharing potato chips packet.',69,25,'120g / packet','Images/Spicy Potato Chips.jpeg',2);
