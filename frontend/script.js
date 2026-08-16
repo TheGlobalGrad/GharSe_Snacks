@@ -47,27 +47,33 @@ const PRODUCT_IMAGE_FILES = {
 
     "besan ladoo": "Images/Besan Ladoo.jpeg",
 
-    "masala khakhra": "Images/Coming Soon.jpeg",
+    "khakhra": "Images/Logo.jpeg",
 
-    "methi khakhra": "Images/Coming Soon.jpeg",
+    "masala khakhra": "Images/Logo.jpeg",
 
-    "jeera khakhra": "Images/Coming Soon.jpeg",
+    "methi khakhra": "Images/Logo.jpeg",
 
-    "thepla": "Images/Coming Soon.jpeg",
+    "jeera khakhra": "Images/Logo.jpeg",
 
-    "coin khakhra (peri peri)": "Images/Coming Soon.jpeg",
+    "thepla": "Images/Thepla.jpeg",
 
-    "coin khakhra (pani puri)": "Images/Coming Soon.jpeg",
+    "coin khakhra": "Images/Logo.jpeg",
 
-    "coin khakhra (jain)": "Images/Coming Soon.jpeg",
+    "coin khakhra (peri peri)": "Images/Logo.jpeg",
 
-    "coin khakhra (achari)": "Images/Coming Soon.jpeg",
+    "coin khakhra (pani puri)": "Images/Logo.jpeg",
+
+    "coin khakhra (pizza jain)": "Images/Logo.jpeg",
+
+    "coin khakhra (achari)": "Images/Logo.jpeg",
 
     "soya chips": "Images/Coming Soon.jpeg",
 
-    "raagi chips": "Images/Coming Soon.jpeg",
+    "ragi chips": "Images/Ragi Chips.jpeg",
 
-    "beetroot chips": "Images/Coming Soon.jpeg",
+    "raagi chips": "Images/Ragi Chips.jpeg",
+
+    "beetroot chips": "Images/Beetroot Chips.jpeg",
 
     "bhakhri": "Images/Coming Soon.jpeg",
 
@@ -195,88 +201,88 @@ const PRODUCT_CATALOG = [
     {
         name: "Masala Khakhra",
         city: "Ahmedabad",
-        price: null,
+        price: 150,
         pack_size: "",
-        image_url: "Images/Coming Soon.jpeg",
+        image_url: "Images/Logo.jpeg",
         description: "Crispy Gujarati khakhra with a delicious masala flavour.",
-        stock: 0,
+        stock: 100,
         category: "Gujarati Snacks"
     },
 
     {
         name: "Methi Khakhra",
         city: "Ahmedabad",
-        price: null,
+        price: 150,
         pack_size: "",
-        image_url: "Images/Coming Soon.jpeg",
+        image_url: "Images/Logo.jpeg",
         description: "Classic Gujarati khakhra flavoured with methi.",
-        stock: 0,
+        stock: 100,
         category: "Gujarati Snacks"
     },
 
     {
         name: "Jeera Khakhra",
         city: "Ahmedabad",
-        price: null,
+        price: 150,
         pack_size: "",
-        image_url: "Images/Coming Soon.jpeg",
+        image_url: "Images/Logo.jpeg",
         description: "Light and crispy khakhra with the familiar flavour of jeera.",
-        stock: 0,
+        stock: 100,
         category: "Gujarati Snacks"
     },
 
     {
         name: "Thepla",
         city: "Ahmedabad",
-        price: null,
+        price: 60,
         pack_size: "",
-        image_url: "Images/Coming Soon.jpeg",
+        image_url: "Images/Thepla.jpeg",
         description: "Soft, spiced Gujarati thepla made for a comforting snack.",
-        stock: 0,
+        stock: 100,
         category: "Gujarati Snacks"
     },
 
     {
         name: "Coin Khakhra (Peri Peri)",
         city: "Ahmedabad",
-        price: null,
+        price: 200,
         pack_size: "",
-        image_url: "Images/Coming Soon.jpeg",
+        image_url: "Images/Logo.jpeg",
         description: "Mini coin-shaped khakhra with a spicy peri peri flavour.",
-        stock: 0,
+        stock: 100,
         category: "Gujarati Snacks"
     },
 
     {
         name: "Coin Khakhra (Pani Puri)",
         city: "Ahmedabad",
-        price: null,
+        price: 200,
         pack_size: "",
-        image_url: "Images/Coming Soon.jpeg",
+        image_url: "Images/Logo.jpeg",
         description: "Mini coin-shaped khakhra with a fun pani puri-inspired flavour.",
-        stock: 0,
+        stock: 100,
         category: "Gujarati Snacks"
     },
 
     {
-        name: "Coin Khakhra (Jain)",
+        name: "Coin Khakhra (Pizza Jain)",
         city: "Ahmedabad",
-        price: null,
+        price: 200,
         pack_size: "",
-        image_url: "Images/Coming Soon.jpeg",
-        description: "Mini coin-shaped Jain-friendly khakhra.",
-        stock: 0,
+        image_url: "Images/Logo.jpeg",
+        description: "Mini coin-shaped pizza-style Jain khakhra.",
+        stock: 100,
         category: "Gujarati Snacks"
     },
 
     {
         name: "Coin Khakhra (Achari)",
         city: "Ahmedabad",
-        price: null,
+        price: 200,
         pack_size: "",
-        image_url: "Images/Coming Soon.jpeg",
+        image_url: "Images/Logo.jpeg",
         description: "Mini coin-shaped khakhra with a tangy achari flavour.",
-        stock: 0,
+        stock: 100,
         category: "Gujarati Snacks"
     },
 
@@ -292,24 +298,24 @@ const PRODUCT_CATALOG = [
     },
 
     {
-        name: "Raagi Chips",
+        name: "Ragi Chips",
         city: "Ahmedabad",
-        price: null,
+        price: 190,
         pack_size: "",
-        image_url: "Images/Coming Soon.jpeg",
+        image_url: "Images/Ragi Chips.jpeg",
         description: "Crunchy raagi chips with a wholesome twist.",
-        stock: 0,
+        stock: 100,
         category: "Gujarati Snacks"
     },
 
     {
         name: "Beetroot Chips",
         city: "Ahmedabad",
-        price: null,
+        price: 190,
         pack_size: "",
-        image_url: "Images/Coming Soon.jpeg",
+        image_url: "Images/Beetroot Chips.jpeg",
         description: "Crispy beetroot chips with a distinctive flavour.",
-        stock: 0,
+        stock: 100,
         category: "Gujarati Snacks"
     },
 
@@ -443,8 +449,14 @@ function productImage(product) {
         .trim()
         .toLowerCase();
 
-    if (product.is_coming_soon || product.isComingSoon) {
+    if (product.is_coming_soon === true || product.isComingSoon === true) {
         return "Images/Coming Soon.jpeg";
+    }
+
+    // These two real chip SKUs share the same product photograph even if an
+    // older database row still contains a placeholder image path.
+    if (/^GSS_IND_SPC_/.test(String(product.product_id || ""))) {
+        return "Images/Spicy Potato Chips.jpeg";
     }
 
     const imagePath =
@@ -752,20 +764,28 @@ async function loadProducts() {
     if (!grid) return;
     try {
         const data = await api("/api/products");
-        const rawProducts = data.products.map(dbProduct => ({
-            product_id: String(dbProduct.product_id),
-            category_id: String(dbProduct.category_id),
-            name: dbProduct.name,
-            description: dbProduct.description,
-            price: Number(dbProduct.price),
-            stock: Number(dbProduct.stock),
-            image_url: dbProduct.image_url || "Images/Coming Soon.jpeg",
-            is_coming_soon: Boolean(dbProduct.is_coming_soon),
-            city: dbProduct.city,
-            category: dbProduct.category_name,
-            pack_size: dbProduct.pack_size || ""
-        }));
-        ORDERABLE_PRODUCTS = rawProducts;
+        const normalise = (item, parent = {}) => {
+            const variants = (item.variants || []).map(variant => normalise(variant, {
+                category_id: item.category_id || parent.category_id,
+                city: item.city || parent.city,
+                category: item.category_name || item.category || parent.category
+            }));
+            return {
+                product_id: String(item.variant_id || item.product_id),
+                parent_product_id: String(item.product_id || parent.parent_product_id || ""),
+                category_id: String(item.category_id || parent.category_id || ""),
+                name: item.name,
+                description: item.description,
+                price: Number(item.price), stock: Number(item.stock),
+                image_url: item.image_url || "Images/Coming Soon.jpeg",
+                is_coming_soon: Boolean(item.is_coming_soon),
+                city: item.city || parent.city, category: item.category_name || item.category || parent.category,
+                pack_size: item.pack_size || "", variants, is_collection: variants.length > 0
+            };
+        };
+        const rawProducts = data.products.map(product => normalise(product));
+        const collectOrderable = products => products.flatMap(product => product.variants.length ? collectOrderable(product.variants) : [product]);
+        ORDERABLE_PRODUCTS = collectOrderable(rawProducts);
         PRODUCTS = buildDisplayProducts(rawProducts);
     } catch (err) {
         console.error("Product API failed:", err);
@@ -786,15 +806,15 @@ async function loadProducts() {
 }
 
 function buildDisplayProducts(rawProducts) {
-    // Every pack/variant is a real product: keep the catalogue in category
-    // ID then product ID order, rather than moving variants into end-of-list
-    // collection cards.
+    const categorySequence = product => Number((String(product.category_id).match(/_(\d+)$/) || [0, 0])[1]);
     const sequence = product => Number((String(product.product_id).match(/_(\d+)$/) || [0, 0])[1]);
-    return [...rawProducts].sort((a, b) =>
-        String(a.category_id).localeCompare(String(b.category_id), undefined, { numeric: true }) ||
+    const sorted = [...rawProducts].sort((a, b) =>
+        categorySequence(a) - categorySequence(b) ||
         sequence(a) - sequence(b) ||
         String(a.product_id).localeCompare(String(b.product_id), undefined, { numeric: true })
     );
+
+    return sorted;
 }
 
 
@@ -1099,7 +1119,9 @@ function renderProducts() {
                             <span class="product-price">
 
                                 ${
-                                    p.price != null &&
+                                    p.is_collection
+                                        ? `${p.variants.length} flavour choices`
+                                        : p.price != null &&
                                     Number(p.price) > 0
                                         ? money(p.price)
                                         : p.is_coming_soon ? "Coming soon" : "Out of stock"
@@ -1167,7 +1189,7 @@ function renderProducts() {
 
                         <div class="product-actions">
 
-                            <div
+                            ${p.is_collection ? "" : `<div
                                 class="qty-control"
                                 data-qty-for="${escapeHtml(productId)}"
                             >
@@ -1190,10 +1212,10 @@ function renderProducts() {
                                     +
                                 </button>
 
-                            </div>
+                            </div>`}
 
 
-                            ${p.is_preview ? "" : `<button
+                            ${p.is_preview || p.is_collection ? "" : `<button
                                 class="btn btn-primary"
                                 type="button"
                                 data-add-to-cart="${escapeHtml(productId)}"
@@ -1400,13 +1422,20 @@ async function openProductDetail(
         String(productId);
 
 
+    const findInCollection = (products) => {
+        for (const item of products) {
+            if (String(item.product_id || "") === id) return item;
+            if (item.variants) {
+                const match = findInCollection(item.variants);
+                if (match) return match;
+            }
+        }
+        return null;
+    };
+
     const product =
-        PRODUCTS.find(
-            (p) =>
-            String(
-                p.product_id || ""
-            ) === id
-        ) || ORDERABLE_PRODUCTS.find(p => String(p.product_id || "") === id);
+        findInCollection(PRODUCTS) ||
+        ORDERABLE_PRODUCTS.find(p => String(p.product_id || "") === id);
 
 
     if (!product) {
@@ -1860,7 +1889,7 @@ function openCollectionDetail(product) {
                 <div class="detail-meta"><span>${escapeHtml(product.category)}</span><span>${escapeHtml(product.city)} specialities</span></div>
                 <p class="detail-description">${escapeHtml(product.description)}</p>
                 <div class="detail-story"><span>Pick a flavour</span><span>Check pack size</span><span>${available ? "Availability updates live" : "Launching soon"}</span></div>
-                <div class="variant-grid">${product.variants.map(v => `<article class="variant-card"><div><h4>${escapeHtml(v.name)}</h4><p>${escapeHtml(v.pack_size || "Pack details coming soon")} · ${Number(v.stock) > 0 ? `${Number(v.stock)} packs available` : "Coming soon"}</p></div><strong>${Number(v.price) > 0 ? money(v.price) : "Coming soon"}</strong>${Number(v.stock) > 0 ? `<button class="btn btn-primary" type="button" data-add-variant="${escapeHtml(v.product_id)}">Add this variety</button>` : `<button class="btn btn-secondary" type="button" data-view="${escapeHtml(v.product_id)}">See flavour details</button>`}</article>`).join("")}</div>
+                <div class="variant-grid">${product.variants.map(v => v.is_collection ? `<article class="variant-card"><div><h4>${escapeHtml(v.name)}</h4><p>${escapeHtml(v.description)} · ${v.variants.length} flavours</p></div><strong>From ${money(v.variants[0].price)}</strong><button class="btn btn-primary" type="button" data-view="${escapeHtml(v.product_id)}">View varieties</button></article>` : `<article class="variant-card"><div><h4>${escapeHtml(v.name)}</h4><p>${escapeHtml(v.pack_size || "Pack size will be confirmed soon")} · ${Number(v.stock) > 0 ? `${Number(v.stock)} packs available` : "Out of stock"}</p></div><strong>${Number(v.price) > 0 ? money(v.price) : "Price unavailable"}</strong>${Number(v.stock) > 0 ? `<div class="product-actions"><div class="qty-control" data-qty-for="${escapeHtml(v.product_id)}"><button type="button" data-qty="dec" aria-label="Reduce quantity">−</button><span data-qty-value>1</span><button type="button" data-qty="inc" aria-label="Increase quantity">+</button></div><button class="btn btn-primary" type="button" data-add-to-cart="${escapeHtml(v.product_id)}">Add to cart</button></div>` : `<button class="btn btn-secondary" type="button" data-view="${escapeHtml(v.product_id)}">See flavour details</button>`}</article>`).join("")}</div>
                 <div class="product-reviews"><h3>Flavour stories & ratings</h3><p class="detail-rating">Reviews are collected separately for each flavour, so every rating stays useful.</p><button class="btn btn-secondary" type="button" data-view="${escapeHtml(product.variants[0].product_id)}">Read and write reviews</button></div>
             </div>
         </div>`;
