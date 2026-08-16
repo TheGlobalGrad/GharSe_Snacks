@@ -70,6 +70,13 @@ app.get('/api/health', async(_req, res) => {
 app.get('/api/products', async(_req, res) => {
     try {
         const products = await q(`SELECT p.product_id,p.category_id,p.name,p.description,p.price,p.stock,p.pack_size,p.image_url,CAST(p.is_coming_soon AS UNSIGNED) AS is_coming_soon,c.city,c.name AS category_name FROM products p JOIN categories c ON c.category_id=p.category_id WHERE p.is_active=1 ORDER BY CAST(SUBSTRING_INDEX(p.category_id, '_', -1) AS UNSIGNED), CAST(SUBSTRING_INDEX(p.product_id, '_', -1) AS UNSIGNED)`);
+        const variants = await q(`SELECT variant_id,product_id,parent_variant_id,name,description,price,stock,pack_size,image_url,display_order FROM product_variants WHERE is_active=1 ORDER BY product_id,display_order`);
+        const byParent = new Map(products.map(product => [product.product_id, product]));
+        const byVariant = new Map(variants.map(variant => [variant.variant_id, { ...variant, variants: [] }]));
+        for (const variant of byVariant.values()) {
+            const parent = variant.parent_variant_id ? byVariant.get(variant.parent_variant_id) : byParent.get(variant.product_id);
+            if (parent) parent.variants = parent.variants || [], parent.variants.push(variant);
+        }
         res.json({ success: true, products });
     } catch (error) {
         console.error(error);
@@ -211,10 +218,9 @@ app.post('/api/create-order', async(req, res) => {
             if (!id || !Number.isInteger(quantity) || quantity < 1 || quantity > 20) return res.status(400).json({ success: false, error: 'Invalid cart item.' });
             merged.set(id, (merged.get(id) || 0) + quantity);
         }
-        const ids = [...merged.keys()],
-            marks = ids.map(() => '?').join(',');
-        const products = await q(`SELECT product_id,category_id,name,price,stock,is_coming_soon FROM products WHERE is_active=1 AND product_id IN (${marks})`, ids);
-        const productMap = new Map(products.map(p => [p.product_id, p]));
+        const ids = [...merged.keys()], marks = ids.map(() => '?').join(',');
+        const products = await q(`SELECT v.variant_id,v.product_id,p.category_id,CONCAT(p.name, ' — ', v.name) AS name,v.price,v.stock,v.is_coming_soon FROM product_variants v JOIN products p ON p.product_id=v.product_id WHERE v.is_active=1 AND p.is_active=1 AND v.variant_id IN (${marks})`, ids);
+        const productMap = new Map(products.map(p => [p.variant_id, p]));
         let total = 0;
         const orderItems = [];
         for (const [id, quantity] of merged) {
@@ -230,7 +236,7 @@ app.post('/api/create-order', async(req, res) => {
         const result = await q('INSERT INTO orders (user_id,customer_name,customer_email,customer_phone,delivery_address,delivery_place,delivery_state,subtotal,total_amount) VALUES (?,?,?,?,?,?,?,?,?)', [userId, name, email || null, phone, address, place, clean(customer.state, 100) || null, total, total]);
         const orderId = ref(`${cityCode(place)}_ORD`, result.insertId);
         await q('UPDATE orders SET order_id=? WHERE id=?', [orderId, result.insertId]);
-        for (const item of orderItems) await q('INSERT INTO order_items (order_id,product_id,category_id,product_name,unit_price,quantity) VALUES (?,?,?,?,?,?)', [result.insertId, item.product_id, item.category_id, item.name, item.price, item.quantity]);
+        for (const item of orderItems) await q('INSERT INTO order_items (order_id,product_id,variant_id,category_id,product_name,unit_price,quantity) VALUES (?,?,?,?,?,?,?)', [result.insertId, item.product_id, item.variant_id, item.category_id, item.name, item.price, item.quantity]);
         const payment = await q('INSERT INTO payments (order_id,razorpay_order_id,amount) VALUES (?,?,?)', [result.insertId, razorpayOrder.id, total]);
         const paymentId = ref('PAY', payment.insertId);
         await q('UPDATE payments SET payment_id=? WHERE id=?', [paymentId, payment.insertId]);
