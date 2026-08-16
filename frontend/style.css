@@ -1849,8 +1849,9 @@ footer strong {
 }
 
 .reveal {
-    opacity: 0;
-    transform: translateY(22px);
+    /* Content must remain usable if JavaScript fails to load or execute. */
+    opacity: 1;
+    transform: translateY(0);
     transition: opacity 0.7s ease, transform 0.7s ease;
 }
 
