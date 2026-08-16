@@ -123,8 +123,8 @@ const PRODUCT_CATALOG = [
     {
         name: "Chana Jor",
         city: "Bikaner",
-        price: 49,
-        pack_size: "100g / packet",
+        price: null,
+        pack_size: "",
         image_url: "Images/Chana Jor.jpeg",
         description: "Crunchy spiced chana jor for an anytime snack.",
         stock: 100,
@@ -150,8 +150,8 @@ const PRODUCT_CATALOG = [
     {
         name: "Spicy Parmal (Murmure)",
         city: "Indore",
-        price: 69,
-        pack_size: "100g / packet",
+        price: null,
+        pack_size: "",
         image_url: "Images/Spicy Parmal (Murmure).jpeg",
         description: "A spicy and crunchy Indori-style parmal and murmure snack.",
         stock: 100,
@@ -650,6 +650,7 @@ async function loadProducts() {
         const data = await api("/api/products");
         const normalise = (item, parent = {}) => ({
             product_id: String(item.variant_id || item.product_id),
+            parent_product_id: String(item.product_id || parent.parent_product_id || ""),
             category_id: String(item.category_id || parent.category_id || ""),
             name: item.name, description: item.description, price: Number(item.price), stock: Number(item.stock),
             image_url: item.image_url || "Images/Logo.jpeg", city: item.city || parent.city,
@@ -965,20 +966,6 @@ function renderProducts() {
 
                             </div>
 
-
-                            <span class="product-price">
-
-                                ${
-                                    p.variants?.length
-                                        ? `${p.variants.length} varieties`
-                                        : p.price != null &&
-                                    Number(p.price) > 0
-                                        ? money(p.price)
-                                        : "Out of stock"
-                                }
-
-                            </span>
-
                         </div>
 
 
@@ -1291,7 +1278,7 @@ async function openProductDetail(
     if (product.variants?.length) {
         const detail = document.getElementById("productDetail");
         if (!detail) return;
-        detail.innerHTML = `<div class="product-detail-layout"><div class="product-image-panel"><img src="${escapeHtml(productImage(product))}" alt="${escapeHtml(product.name)}" /></div><div class="product-detail-copy"><h2>${escapeHtml(product.name)}</h2><p class="detail-description">${escapeHtml(product.description || "")}</p><div class="variant-grid">${product.variants.map(variant => variant.variants?.length ? `<article class="variant-card"><div><h4>${escapeHtml(variant.name)}</h4><p>${variant.variants.length} flavours available</p></div><button class="btn btn-primary" type="button" data-view="${escapeHtml(variant.product_id)}">View varieties</button></article>` : `<article class="variant-card"><div><h4>${escapeHtml(variant.name)}</h4><p>${escapeHtml(variant.pack_size || "")}${variant.stock > 0 ? ` · ${variant.stock} packs left` : " · Out of stock"}</p></div><strong>${money(variant.price)}</strong>${variant.stock > 0 ? `<div class="product-actions"><div class="qty-control" data-qty-for="${escapeHtml(variant.product_id)}"><button type="button" data-qty="dec">−</button><span data-qty-value>1</span><button type="button" data-qty="inc">+</button></div><button class="btn btn-primary" type="button" data-add-to-cart="${escapeHtml(variant.product_id)}">Add to cart</button></div>` : "<span class=\"product-state coming-soon\">Out of stock</span>"}</article>`).join("")}</div></div></div>`;
+        detail.innerHTML = `<div class="product-detail-layout"><div class="product-image-panel"><img src="${escapeHtml(productImage(product))}" alt="${escapeHtml(product.name)}" /></div><div class="product-detail-copy"><h2>${escapeHtml(product.name)}</h2><div class="detail-meta"><span>${escapeHtml(product.category || "GharSe Snacks")}</span><span class="detail-id">Category ID: ${escapeHtml(product.category_id || "Unavailable")}</span><span class="detail-id">Product ID: ${escapeHtml(product.product_id || "Unavailable")}</span></div><p class="detail-description">${escapeHtml(product.description || "")}</p><div class="variant-grid">${product.variants.map(variant => variant.variants?.length ? `<article class="variant-card"><div><h4>${escapeHtml(variant.name)}</h4><p>${variant.variants.length} flavours available</p><small class="detail-id">Category ID: ${escapeHtml(variant.category_id || product.category_id || "Unavailable")}</small><small class="detail-id">Product ID: ${escapeHtml(variant.product_id)}</small></div><button class="btn btn-primary" type="button" data-view="${escapeHtml(variant.product_id)}">View varieties</button></article>` : `<article class="variant-card"><div><h4>${escapeHtml(variant.name)}</h4><small class="detail-id">Category ID: ${escapeHtml(variant.category_id || product.category_id || "Unavailable")}</small><small class="detail-id">Product ID: ${escapeHtml(variant.product_id)}</small><p><span class="detail-label">Price</span><br><strong>${money(variant.price)}</strong><br>${escapeHtml(variant.pack_size || "Pack size unavailable")}</p></div>${variant.stock > 0 ? `<div class="product-actions"><div class="qty-control" data-qty-for="${escapeHtml(variant.product_id)}"><button type="button" data-qty="dec">−</button><span data-qty-value>1</span><button type="button" data-qty="inc">+</button></div><button class="btn btn-primary" type="button" data-add-to-cart="${escapeHtml(variant.product_id)}">Add to cart</button></div>` : "<span class=\"product-state coming-soon\">Out of stock</span>"}</article>`).join("")}</div></div></div>`;
         openModal("productModal");
         return;
     }
