@@ -117,7 +117,10 @@ app.post('/api/subscriptions', async(req, res) => {
         const result = await q('INSERT INTO subscriptions (email) VALUES (?)', [email]);
         const subscriptionId = ref('SUB', result.insertId);
         await q('UPDATE subscriptions SET subscription_id=? WHERE id=?', [subscriptionId, result.insertId]);
-        await sendEmail(email, 'Welcome to GharSe Snacks updates', `<p>Welcome to GharSe Snacks!</p><p>You will receive new regional snack drops, launch announcements and early-bird offers.</p>`);
+        await Promise.all([
+            sendEmail(email, 'Welcome to GharSe Snacks updates', `<p>Welcome to GharSe Snacks!</p><p>You will receive new regional snack drops, launch announcements and early-bird offers.</p>`),
+            sendEmail(BUSINESS_EMAIL, `New newsletter subscriber: ${subscriptionId}`, `<p><strong>${esc(email)}</strong> subscribed to GharSe Snacks updates.</p><p>Subscription ID: ${esc(subscriptionId)}</p>`)
+        ]);
         res.status(201).json({ success: true, subscriptionId });
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') return res.json({ success: true, alreadySubscribed: true });
@@ -136,7 +139,10 @@ app.post('/api/auth/signup', async(req, res) => {
         const result = await q('INSERT INTO users (name,email,password_hash,phone,place,state,address,preferred_snacks) VALUES (?,?,?,?,?,?,?,?)', [name, email, hash, phone || null, clean(req.body.place, 100) || null, clean(req.body.state, 100) || null, clean(req.body.address, 2000) || null, clean(req.body.preferredSnacks, 255) || null]);
         const userId = ref('USR', result.insertId);
         await q('UPDATE users SET user_id=? WHERE id=?', [userId, result.insertId]);
-        await sendEmail(email, 'Welcome to GharSe Snacks', `<p>Hi ${esc(name)},</p><p>Your account is ready. Your GharSe Snacks user ID is <strong>${userId}</strong>.</p>`);
+        await Promise.all([
+            sendEmail(email, 'Welcome to GharSe Snacks', `<p>Hi ${esc(name)},</p><p>Your account is ready. Your GharSe Snacks user ID is <strong>${userId}</strong>.</p>`),
+            sendEmail(BUSINESS_EMAIL, `New customer account: ${userId}`, `<p><strong>${esc(name)}</strong> created a GharSe Snacks customer account.</p><p>Email: ${esc(email)}<br>Customer ID: ${esc(userId)}</p>`)
+        ]);
         res.status(201).json({ success: true, user: { id: result.insertId, customerId: userId, name, email, phone, accountType: 'registered' } });
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ success: false, error: 'An account with this email already exists. Please log in.' });

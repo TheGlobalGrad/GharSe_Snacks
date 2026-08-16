@@ -766,7 +766,18 @@ async function loadProducts() {
         PRODUCTS = buildDisplayProducts(rawProducts);
     } catch (err) {
         console.error("Product API failed:", err);
-        PRODUCTS = [];
+        // Keep the storefront browseable if the API or local database is
+        // temporarily unavailable.  These preview cards cannot be checked
+        // out until the server is back, so do not put them in the orderable
+        // product list.
+        ORDERABLE_PRODUCTS = [];
+        PRODUCTS = PRODUCT_CATALOG.map((product, index) => ({
+            ...product,
+            product_id: `preview-${index + 1}`,
+            category_id: "",
+            is_preview: true
+        }));
+        showToast("Showing catalogue preview while the product service reconnects.");
     }
     renderProducts();
 }
@@ -1051,7 +1062,7 @@ function renderProducts() {
 
                 return `
 
-                    <article class="product-card reveal" id="city-${escapeHtml(p.city.toLowerCase())}" data-id="${escapeHtml(productId)}">
+                    <article class="product-card reveal is-visible" id="city-${escapeHtml(p.city.toLowerCase())}" data-id="${escapeHtml(productId)}">
 
                         <div class="product-image-wrap">
 
@@ -1186,7 +1197,7 @@ function renderProducts() {
                             </div>`}
 
 
-                            ${p.is_collection ? "" : `<button
+                            ${p.is_collection || p.is_preview ? "" : `<button
                                 class="btn btn-primary"
                                 type="button"
                                 data-add-to-cart="${escapeHtml(productId)}"
@@ -1641,6 +1652,9 @@ async function openProductDetail(
                     </div>
 
 
+                    ${product.is_preview ? `
+                        <p class="form-note">Live availability and checkout will return when the product service reconnects.</p>
+                    ` : `
                     <div
                         class="qty-control"
                         data-qty-for="${escapeHtml(
@@ -1688,6 +1702,7 @@ async function openProductDetail(
                         }
 
                     </button>
+                    `}
 
                 </div>
 
@@ -2162,7 +2177,7 @@ async function addToCart(
     if (!product) {
 
         showToast(
-            "Product could not be found.",
+            "Live checkout is temporarily unavailable while the product service reconnects.",
             true
         );
 
