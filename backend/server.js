@@ -34,6 +34,18 @@ async function sendEmail(to, subject, html) {
 }
 const esc = value => String(value || '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
 
+async function createOrFindBulkCustomer({ name, email, phone, state, address }) {
+    const existing = await q('SELECT id,user_id FROM users WHERE email=? LIMIT 1', [email]);
+    if (existing.length) return { customerId: existing[0].user_id, accountCreated: false, setupCode: null };
+    const passwordHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
+    const result = await q('INSERT INTO users (name,email,password_hash,phone,state,address,preferred_snacks) VALUES (?,?,?,?,?,?,?)', [name, email, passwordHash, phone, state, address, 'Bulk order enquiry']);
+    const customerId = ref('USR', result.insertId);
+    await q('UPDATE users SET user_id=? WHERE id=?', [customerId, result.insertId]);
+    const setupCode = String(crypto.randomInt(100000, 1000000));
+    await q('INSERT INTO password_reset_tokens (user_id,token_hash,expires_at) VALUES (?,?,DATE_ADD(NOW(), INTERVAL 15 MINUTE))', [result.insertId, crypto.createHash('sha256').update(setupCode).digest('hex')]);
+    return { customerId, accountCreated: true, setupCode };
+}
+
 let razorpay = null;
 if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) razorpay = new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET });
 
@@ -84,12 +96,14 @@ app.post('/api/bulk-order-enquiries', async(req, res) => {
         requirements = clean(req.body.requirements, 5000);
     if (!name || !emailOk(email) || !phone || !address || !state || !product || !quantity) return res.status(400).json({ success: false, error: 'Please complete all required bulk-order details with a valid email.' });
     try {
+        const customer = await createOrFindBulkCustomer({ name, email, phone, state, address });
         const result = await q('INSERT INTO bulk_order_enquiries (name,email,phone,delivery_address,state,product,quantity,requirements) VALUES (?,?,?,?,?,?,?,?)', [name, email, phone, address, state, product, quantity, requirements || null]);
         const enquiryId = ref('BULK', result.insertId);
         await q('UPDATE bulk_order_enquiries SET enquiry_id=? WHERE id=?', [enquiryId, result.insertId]);
         const details = `<p><strong>Bulk enquiry:</strong> ${esc(enquiryId)}</p><p><strong>Customer:</strong> ${esc(name)}<br><strong>Email:</strong> ${esc(email)}<br><strong>Phone:</strong> ${esc(phone)}<br><strong>State:</strong> ${esc(state)}<br><strong>Address:</strong> ${esc(address)}<br><strong>Product:</strong> ${esc(product)}<br><strong>Quantity:</strong> ${esc(quantity)}</p><p><strong>Requirements:</strong><br>${esc(requirements || 'None')}</p>`;
-        await Promise.all([sendEmail(email, 'Your GharSe Snacks bulk-order enquiry', `<p>Hi ${esc(name)},</p><p>We received your bulk-order enquiry. Your reference is <strong>${enquiryId}</strong>. Our team will contact you within seven days with availability and pricing.</p>`), sendEmail(BUSINESS_EMAIL, `New bulk order enquiry: ${enquiryId}`, details)]);
-        res.status(201).json({ success: true, enquiryId });
+        const accountNote = customer.accountCreated ? `<p>We have also created your GharSe Snacks customer ID: <strong>${esc(customer.customerId)}</strong>. To set your password and log in, use reset code <strong>${esc(customer.setupCode)}</strong> on the Forgot password screen within 15 minutes.</p>` : `<p>Your GharSe Snacks customer ID is <strong>${esc(customer.customerId)}</strong>.</p>`;
+        await Promise.all([sendEmail(email, 'Your GharSe Snacks bulk-order enquiry', `<p>Hi ${esc(name)},</p><p>We received your bulk-order enquiry. Your reference is <strong>${enquiryId}</strong>. Our team will contact you within seven days with availability and pricing.</p>${accountNote}`), sendEmail(BUSINESS_EMAIL, `New bulk order enquiry: ${enquiryId}`, details)]);
+        res.status(201).json({ success: true, enquiryId, customerId: customer.customerId, accountCreated: customer.accountCreated });
     } catch (error) {
         console.error('Bulk order enquiry:', error);
         res.status(500).json({ success: false, error: 'Could not send your bulk-order enquiry.' });
@@ -170,8 +184,7 @@ app.post('/api/create-order', async(req, res) => {
         address = clean(customer.address, 2000),
         place = clean(customer.place, 100),
         email = clean(customer.email).toLowerCase();
-    if (!items.length || !name || !phone || !address || !place) return res.status(400).json({ success: false, error: 'Please provide your name, phone number, delivery address and city.' });
-    if (email && !emailOk(email)) return res.status(400).json({ success: false, error: 'Please enter a valid email address or leave it blank.' });
+    if (!items.length || !name || !phone || !address || !place || !emailOk(email)) return res.status(400).json({ success: false, error: 'Please provide your name, email, phone number, delivery address and city.' });
     try {
         const merged = new Map();
         for (const item of items) {

@@ -14,7 +14,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800&family=Kalam:wght@400;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
     <link rel="stylesheet" href="style.css" />
 
@@ -201,8 +201,7 @@
                     <img class="carousel-feature-image" src="Images/Suggestions.png" alt="Share your snack suggestions" />
 
                     <div class="hero-card-head">
-                        <p>Your ideas matter</p>
-                        <span>Suggestions</span>
+                        <p>Your Ideas, Our Inspiration</p>
                     </div>
 
                     <h3>
@@ -218,60 +217,12 @@
                 </div>
 
 
-                <div class="carousel-slide is-hidden">
-
-                    <div class="carousel-photo order-photo" aria-hidden="true"></div>
-
-                    <div class="hero-card-head">
-                        <p>Pick. Pack. Enjoy.</p>
-                        <span>Easy checkout</span>
-                    </div>
-
-                    <h3>
-                        Your hometown favourites are only a few clicks away.
-                    </h3>
-
-                    <p>
-                        Choose your snacks, add them to your box, and pay securely online.
-                    </p>
-
-                    <a class="btn btn-secondary hero-group-btn" href="#explore">
-                        Build your box
-                    </a>
-
-                </div>
-
-
-                <div class="carousel-slide is-hidden">
-
-                    <div class="carousel-photo taste-photo" aria-hidden="true"></div>
-
-                    <div class="hero-card-head">
-                        <p>Your ideas matter</p>
-                        <span>Suggestions</span>
-                    </div>
-
-                    <h3>
-                        Have a special request or a snack you want us to bring next?
-                    </h3>
-
-                    <p>
-                        Tell us the flavour, city, quantity, or delivery need. We use these requests to plan future drops.
-                    </p>
-
-                    <button class="btn btn-secondary hero-group-btn" type="button" id="suggestionTrigger">
-                        Share a suggestion
-                    </button>
-
-                </div>
-
-
                 <div class="carousel-slide bulk-slide">
 
                     <img class="carousel-feature-image" src="Images/Bulk Orders.png" alt="Bulk snack orders" />
 
                     <div class="hero-card-head">
-                        <p>Bulk & wholesale orders</p>
+                        <p>Make It a GharSe Gathering</p>
                         <span class="bulk-badge">
                             Special pricing
                         </span>
@@ -862,6 +813,8 @@
                                 Delivery Details
                             </h3>
 
+                            <p class="form-note">Guest checkout is available — creating an account or logging in is optional.</p>
+
 
                             <!-- FULL NAME -->
                             <div>
@@ -883,6 +836,16 @@
                                 </label>
 
                                 <input type="tel" id="checkoutPhone" name="phone" placeholder="Enter Your Contact Number" autocomplete="tel" inputmode="tel" maxlength="15" required />
+
+                            </div>
+
+                            <div>
+
+                                <label for="checkoutEmail">
+                                    Email for your order receipt
+                                </label>
+
+                                <input type="email" id="checkoutEmail" name="email" placeholder="you@example.com" autocomplete="email" required />
 
                             </div>
 
@@ -1008,8 +971,8 @@
                 <label>Phone number<input name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="20" required /></label>
                 <label>State<input name="state" type="text" autocomplete="address-level1" required /></label>
                 <label class="full-width">Delivery address<textarea name="address" rows="3" autocomplete="street-address" required></textarea></label>
-                <label>Product / regional food<input name="product" type="text" placeholder="For example: Spicy Potato Chips" required /></label>
-                <label>Estimated quantity<input name="quantity" type="text" placeholder="For example: 100 packs" required /></label>
+                <label>Product / regional food<select name="product" required><option value="">Choose a product or regional food</option><option>Spicy Parmal (Murmure)</option><option>Spicy Potato Chips — Small (40g)</option><option>Spicy Potato Chips — Big (120g)</option><option>Sev</option><option>Khakhra / Coin Khakhra</option><option>Other / multiple products</option></select></label>
+                <label>Estimated quantity<input name="quantity" type="text" placeholder="For example: 100 small packs" required /></label>
                 <label class="full-width">Specific requirements (optional)<textarea name="requirements" rows="4" placeholder="Products, delivery date, budget, packaging, GST details, etc."></textarea></label>
                 <button class="btn btn-primary full-width" type="submit">Send bulk order enquiry</button>
             </form>
@@ -1020,6 +983,8 @@
     <div class="success-modal" id="successModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="successModalTitle">
 
         <div class="success-modal-card">
+
+            <button class="close-btn" type="button" data-close="successModal" aria-label="Close confirmation">×</button>
 
             <div class="success-icon" aria-hidden="true">
 

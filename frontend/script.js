@@ -15,6 +15,7 @@ const API_BASE =
 // =====================================================
 
 let PRODUCTS = [];
+let ORDERABLE_PRODUCTS = [];
 let CART = [];
 
 let CURRENT_USER = JSON.parse(
@@ -749,7 +750,7 @@ async function loadProducts() {
     if (!grid) return;
     try {
         const data = await api("/api/products");
-        PRODUCTS = data.products.map(dbProduct => ({
+        const rawProducts = data.products.map(dbProduct => ({
             product_id: String(dbProduct.product_id),
             category_id: String(dbProduct.category_id),
             name: dbProduct.name,
@@ -761,11 +762,30 @@ async function loadProducts() {
             category: dbProduct.category_name,
             pack_size: dbProduct.pack_size || ""
         }));
+        ORDERABLE_PRODUCTS = rawProducts;
+        PRODUCTS = buildDisplayProducts(rawProducts);
     } catch (err) {
         console.error("Product API failed:", err);
         PRODUCTS = [];
     }
     renderProducts();
+}
+
+function buildDisplayProducts(rawProducts) {
+    const chips = rawProducts.filter(p => p.product_id === "GSS_IND_SPC_014" || p.product_id === "GSS_IND_SPC_020");
+    const khakhras = rawProducts.filter(p => p.category_id === "GSS_AHM_001" && /khakhra/i.test(p.name));
+    const hiddenIds = new Set([...chips, ...khakhras].map(p => p.product_id));
+    const visible = rawProducts.filter(p => !hiddenIds.has(p.product_id));
+    const collection = (id, name, description, variants, image) => ({
+        product_id: id, name, description, variants, is_collection: true,
+        category_id: variants[0]?.category_id || "", city: variants[0]?.city || "Ahmedabad",
+        category: variants[0]?.category || "Regional favourites", image_url: image,
+        stock: variants.reduce((sum, variant) => sum + Number(variant.stock || 0), 0),
+        price: null, pack_size: "Choose a variety in details"
+    });
+    if (chips.length) visible.push(collection("collection-potato-chips", "Spicy Potato Chips", "Choose your crunch: a snackable 40g packet or a generous 120g sharing pack.", chips, "Images/Spicy Potato Chips.jpeg"));
+    if (khakhras.length) visible.push(collection("collection-khakhra", "Khakhra Collection", "One Gujarati favourite, many flavours. Explore classic khakhra and playful coin khakhra varieties.", khakhras, "Images/Coming Soon.jpeg"));
+    return visible;
 }
 
 
@@ -868,7 +888,7 @@ function reconcileCartWithProducts() {
 
     const productsById =
         new Map(
-            PRODUCTS.map(
+            ORDERABLE_PRODUCTS.map(
                 (product) => [
 
                     String(
@@ -884,7 +904,7 @@ function reconcileCartWithProducts() {
 
     const productsByName =
         new Map(
-            PRODUCTS.map(
+            ORDERABLE_PRODUCTS.map(
                 (product) => [
 
                     String(
@@ -1019,7 +1039,7 @@ function renderProducts() {
 
                 const rating =
                     PRODUCT_RATINGS.get(
-                        productId
+                        p.variants?.[0]?.product_id || productId
                     );
 
 
@@ -1073,7 +1093,7 @@ function renderProducts() {
                                     p.price != null &&
                                     Number(p.price) > 0
                                         ? money(p.price)
-                                        : "Coming soon"
+                                        : p.is_collection ? "Choose variety" : "Coming soon"
                                 }
 
                             </span>
@@ -1117,9 +1137,11 @@ function renderProducts() {
                             >
 
                                 ${
-                                    Number(p.stock) > 0
-                                        ? `${Number(p.stock)} packs available`
-                                        : "Will be available soon"
+                                    p.is_collection
+                                        ? `${p.variants.length} varieties to explore`
+                                        : Number(p.stock) > 0
+                                            ? `${Number(p.stock)} packs available`
+                                            : "Will be available soon"
                                 }
 
                             </span>
@@ -1138,7 +1160,7 @@ function renderProducts() {
 
                         <div class="product-actions">
 
-                            <div
+                            ${p.is_collection ? `<div class="collection-banner">Open details to compare flavours, pack sizes and availability.</div>` : `<div
                                 class="qty-control"
                                 data-qty-for="${escapeHtml(productId)}"
                             >
@@ -1161,10 +1183,10 @@ function renderProducts() {
                                     +
                                 </button>
 
-                            </div>
+                            </div>`}
 
 
-                            <button
+                            ${p.is_collection ? "" : `<button
                                 class="btn btn-primary"
                                 type="button"
                                 data-add-to-cart="${escapeHtml(productId)}"
@@ -1176,7 +1198,7 @@ function renderProducts() {
                                         : "Notify me"
                                 }
 
-                            </button>
+                            </button>`}
 
                         </div>
 
@@ -1330,6 +1352,14 @@ document.addEventListener(
 
         }
 
+        const variantBtn =
+            e.target.closest("[data-add-variant]");
+
+        if (variantBtn) {
+            addToCart(String(variantBtn.dataset.addVariant), 1);
+            return;
+        }
+
 
         const viewBtn =
             e.target.closest(
@@ -1364,12 +1394,12 @@ async function openProductDetail(
 
 
     const product =
-        PRODUCTS.find(
+        (PRODUCTS.find(
             (p) =>
             String(
                 p.product_id || ""
             ) === id
-        );
+        ) || ORDERABLE_PRODUCTS.find(p => String(p.product_id || "") === id);
 
 
     if (!product) {
@@ -1381,6 +1411,11 @@ async function openProductDetail(
 
         return;
 
+    }
+
+    if (product.is_collection) {
+        openCollectionDetail(product);
+        return;
     }
 
 
@@ -1800,6 +1835,25 @@ async function openProductDetail(
 
 }
 
+function openCollectionDetail(product) {
+    const detail = document.getElementById("productDetail");
+    if (!detail) return;
+    const available = product.variants.filter(v => Number(v.stock) > 0).length;
+    detail.innerHTML = `
+        <div class="product-detail-layout">
+            <div class="product-image-panel"><img src="${escapeHtml(productImage(product))}" alt="${escapeHtml(product.name)}" /><span class="detail-availability coming-soon">${product.variants.length} flavour choices</span></div>
+            <div class="product-detail-copy">
+                <h2>${escapeHtml(product.name)}</h2>
+                <div class="detail-meta"><span>${escapeHtml(product.category)}</span><span>${escapeHtml(product.city)} specialities</span></div>
+                <p class="detail-description">${escapeHtml(product.description)}</p>
+                <div class="detail-story"><span>Pick a flavour</span><span>Check pack size</span><span>${available ? "Availability updates live" : "Launching soon"}</span></div>
+                <div class="variant-grid">${product.variants.map(v => `<article class="variant-card"><div><h4>${escapeHtml(v.name)}</h4><p>${escapeHtml(v.pack_size || "Pack details coming soon")} · ${Number(v.stock) > 0 ? `${Number(v.stock)} packs available` : "Coming soon"}</p></div><strong>${Number(v.price) > 0 ? money(v.price) : "Coming soon"}</strong>${Number(v.stock) > 0 ? `<button class="btn btn-primary" type="button" data-add-variant="${escapeHtml(v.product_id)}">Add this variety</button>` : `<button class="btn btn-secondary" type="button" data-view="${escapeHtml(v.product_id)}">See flavour details</button>`}</article>`).join("")}</div>
+                <div class="product-reviews"><h3>Flavour stories & ratings</h3><p class="detail-rating">Reviews are collected separately for each flavour, so every rating stays useful.</p><button class="btn btn-secondary" type="button" data-view="${escapeHtml(product.variants[0].product_id)}">Read and write reviews</button></div>
+            </div>
+        </div>`;
+    openModal("productModal");
+}
+
 
 // =====================================================
 // LOAD REVIEWS
@@ -2097,7 +2151,7 @@ async function addToCart(
 
 
     const product =
-        PRODUCTS.find(
+        ORDERABLE_PRODUCTS.find(
             (p) =>
                 String(
                     p.product_id || ""
@@ -3134,8 +3188,9 @@ document
                     "signup"
                 ) {
 
-                    showToast(
-                        "Account created! Please log in."
+                    showSuccess(
+                        "Welcome to GharSe Snacks!",
+                        `Your customer ID is ${data.user.customerId}. A welcome email is on its way; you can now log in.`
                     );
 
 
@@ -3362,10 +3417,9 @@ document
                 form.reset();
 
 
-                showToast(
-                    data.alreadySubscribed
-                        ? "You're already on the list!"
-                        : "Subscribed! Watch your inbox for updates."
+                showSuccess(
+                    data.alreadySubscribed ? "You're already subscribed" : "You're on the GharSe list!",
+                    data.alreadySubscribed ? "This email is already signed up for snack drops and offers." : "Please check your inbox for your welcome email and upcoming snack drops."
                 );
 
 
@@ -3647,7 +3701,7 @@ document
                 closeModal("bulkOrderModal");
                 showSuccess(
                     "Bulk enquiry received!",
-                    `Your reference is ${response.enquiryId}. Our team will contact you within seven days with availability and pricing.`
+                    `Your reference is ${response.enquiryId}. Your customer ID is ${response.customerId}. ${response.accountCreated ? "We sent a password-setup code to your email." : "Our team will contact you within seven days with availability and pricing."}`
                 );
 
             } catch (error) {
