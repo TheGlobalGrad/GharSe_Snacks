@@ -1405,7 +1405,7 @@ async function openProductDetail(
 
 
     const product =
-        (PRODUCTS.find(
+        PRODUCTS.find(
             (p) =>
             String(
                 p.product_id || ""
