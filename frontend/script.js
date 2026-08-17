@@ -682,6 +682,7 @@ async function loadProducts() {
         PRODUCTS = data.products.map(product => normalise(product));
         const leaves = list => list.flatMap(product => product.variants.length ? leaves(product.variants) : [product]);
         ORDERABLE_PRODUCTS = leaves(PRODUCTS);
+        reconcileCartWithProducts();
     } catch (err) {
         console.error("Product API failed:", err);
         PRODUCTS = [];
@@ -790,7 +791,7 @@ function reconcileCartWithProducts() {
 
     const productsById =
         new Map(
-            PRODUCTS.map(
+            ORDERABLE_PRODUCTS.map(
                 (product) => [
 
                     String(
@@ -806,7 +807,7 @@ function reconcileCartWithProducts() {
 
     const productsByName =
         new Map(
-            PRODUCTS.map(
+            ORDERABLE_PRODUCTS.map(
                 (product) => [
 
                     String(
@@ -3758,9 +3759,9 @@ document.addEventListener(
 
         initCarousel();
 
-        loadProducts();
-
         loadCart();
+
+        loadProducts();
 
         setAuthMode(
             "login"

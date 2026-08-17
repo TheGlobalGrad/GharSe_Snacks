@@ -2663,13 +2663,13 @@ footer strong {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 42px;
-    padding: 0.7rem 1rem;
+    min-height: 32px;
+    padding: 0.45rem 0.7rem;
     border-radius: 999px;
     background: linear-gradient(135deg, var(--primary), #d94a1e) !important;
     color: #ffffff !important;
     box-shadow: 0 8px 18px rgba(164, 16, 13, 0.22);
-    font-size: 0.9rem;
+    font-size: 0.78rem;
     line-height: 1;
     white-space: nowrap;
 }
@@ -2867,7 +2867,7 @@ footer strong {
 .variant-card {
     position: relative;
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: .75rem;
     align-items: center;
     padding: .9rem;
@@ -3124,9 +3124,11 @@ footer strong {
 
 .variant-card .product-actions .btn {
     width: auto;
+    min-width: 116px;
     margin: 0;
-    padding: .58rem .85rem;
+    padding: .62rem .9rem;
     border-radius: 999px;
+    white-space: nowrap;
 }
 
 .variant-card .product-actions .qty-control {
@@ -3134,16 +3136,17 @@ footer strong {
 }
 
 .variant-id {
-    position: absolute;
-    top: .85rem;
-    right: .9rem;
+    position: static;
+    grid-column: 1 / -1;
+    justify-self: end;
     color: var(--muted);
     font-size: .7rem;
     font-weight: 700;
 }
 
 .variant-card>div {
-    padding-right: 9.5rem;
+    min-width: 0;
+    padding-right: 0;
 }
 
 .variant-card .detail-label {
@@ -3162,4 +3165,27 @@ footer strong {
     color: var(--muted);
     font-size: .78rem;
     font-weight: 700;
+}
+
+@media (max-width: 560px) {
+    .product-modal-card {
+        width: calc(100vw - 1rem);
+        padding: .85rem;
+    }
+
+    .variant-card {
+        grid-template-columns: minmax(0, 1fr);
+        gap: .55rem;
+        padding: .8rem;
+    }
+
+    .variant-card .product-actions {
+        grid-column: 1;
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .variant-card .product-actions .btn {
+        min-width: 112px;
+    }
 }
