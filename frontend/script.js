@@ -243,7 +243,7 @@ function money(value) {
 }
 
 function productCardLabel(product) {
-    if (product.variants?.length) return `${product.variants.length} varieties`;
+    if (product.variants ? .length) return `${product.variants.length} varieties`;
     return Number(product.price) > 0 ? money(product.price) : "Price unavailable";
 }
 
@@ -2506,9 +2506,6 @@ document.addEventListener(
                                             "name"
                                         ),
 
-                                    email:
-                                        CURRENT_USER?.email || "",
-
                                     phone:
                                         formData.get(
                                             "phone"
@@ -2518,12 +2515,6 @@ document.addEventListener(
                                         formData.get(
                                             "address"
                                         ),
-
-                                    place:
-                                        "",
-
-                                    state:
-                                        ""
 
                                 },
 
