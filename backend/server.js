@@ -11,6 +11,7 @@ const db = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3001;
 const BUSINESS_EMAIL = process.env.ORDER_NOTIFICATION_EMAIL || 'gharse.team@gmail.com';
+const RESEND_FROM = process.env.EMAIL_FROM || 'GharSe Snacks <onboarding@resend.dev>';
 app.use(cors({ origin: process.env.FRONTEND_ORIGIN || true }));
 app.use(express.json({ limit: '100kb' }));
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
@@ -27,9 +28,21 @@ function getMailTransport() {
     return mailTransport;
 }
 async function sendEmail(to, subject, html) {
-    const transport = getMailTransport();
-    if (!transport || !to) throw new Error('Email is not configured. Set GMAIL_USER and GMAIL_APP_PASSWORD in backend/.env.');
+    if (!to) throw new Error('Email recipient is missing.');
     try {
+        if (process.env.RESEND_API_KEY) {
+            const response = await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ from: RESEND_FROM, to: [to], subject, html })
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Resend rejected the message.');
+            console.log(`Email accepted for delivery to ${to} (${result.id}).`);
+            return result;
+        }
+        const transport = getMailTransport();
+        if (!transport) throw new Error('Email is not configured. Set RESEND_API_KEY or Gmail SMTP credentials in backend/.env.');
         const result = await transport.sendMail({ from: `GharSe Snacks <${process.env.GMAIL_USER}>`, to, subject, html });
         console.log(`Email accepted for delivery to ${to} (${result.messageId}).`);
         return result;
@@ -70,8 +83,7 @@ app.get('/test-db', async(_req, res) => {
 app.get('/api/health', async(_req, res) => {
     try {
         await q('SELECT 1');
-        const transport = getMailTransport();
-        const email = transport ? (await transport.verify(), 'ready') : 'not configured';
+        const email = process.env.RESEND_API_KEY ? 'configured (Resend)' : (getMailTransport() ? 'configured (Gmail SMTP)' : 'not configured');
         res.json({ success: true, database: 'connected', payments: razorpayConfigured ? 'configured' : 'not configured', email });
     } catch (error) { res.status(503).json({ success: false, database: 'unavailable', error: error.message }); }
 });

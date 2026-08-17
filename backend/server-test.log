@@ -1,4 +1,10 @@
-◇ injected env (13) from .env // tip: ⌘ override existing { override: true }
-◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (13) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
 GharSe Snacks running on http://localhost:3001
 MySQL connected successfully!
+Email accepted for delivery to gharse.team@gmail.com (81e4a1d7-062d-4662-b6fa-0476448a82e9).
+Email accepted for delivery to gharse.team@gmail.com (29522a3a-bca1-40cd-90b3-12294c095fa3).
+Email accepted for delivery to gharse.team@gmail.com (d5373f84-a303-451b-81b5-96c61be80e57).
+Email accepted for delivery to gharse.team@gmail.com (01e357a1-7507-419e-927d-d2901ad9d906).
+Email accepted for delivery to gharse.team@gmail.com (11b00e77-46f8-4aa9-99f8-9a0a8c2f7c04).
+Email accepted for delivery to gharse.team@gmail.com (4f8bc3cd-b2ae-4d79-9509-94dd58e4349c).

@@ -2631,7 +2631,38 @@ footer strong {
 }
 
 .bulk-order-modal-card {
-    max-width: 720px;
+    width: min(100%, 620px);
+    max-width: 620px;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+}
+
+.bulk-order-modal-card .form-note {
+    margin: 0.45rem 0 0;
+    font-size: 0.88rem;
+}
+
+.bulk-order-form {
+    gap: 0.65rem 0.8rem;
+    margin-top: 0.7rem;
+}
+
+.bulk-order-form input,
+.bulk-order-form textarea,
+.bulk-order-form select {
+    padding: 0.58rem 0.7rem;
+}
+
+.bulk-order-form textarea {
+    min-height: 3.6rem;
+}
+
+.bulk-order-form button[type="submit"] {
+    position: sticky;
+    bottom: -1.3rem;
+    z-index: 1;
+    padding-block: 0.68rem;
+    box-shadow: 0 -8px 14px #fffdfa;
 }
 
 .product-card .product-price.coming-soon {
