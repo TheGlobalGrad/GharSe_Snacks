@@ -223,8 +223,9 @@ app.post('/api/create-order', async(req, res) => {
         }
         const ids = [...merged.keys()],
             marks = ids.map(() => '?').join(',');
-        const products = await q(`SELECT v.variant_id,v.product_id,p.category_id,CONCAT(p.name, ' — ', v.name) AS name,v.price,v.stock,p.is_coming_soon FROM product_variants v JOIN products p ON p.product_id=v.product_id WHERE v.is_active=1 AND p.is_active=1 AND v.variant_id IN (${marks})`, ids);
-        const productMap = new Map(products.map(p => [p.variant_id, p]));
+        const variantProducts = await q(`SELECT v.variant_id AS cart_id,v.variant_id,v.product_id,p.category_id,CONCAT(p.name, ' — ', v.name) AS name,v.price,v.stock,p.is_coming_soon FROM product_variants v JOIN products p ON p.product_id=v.product_id WHERE v.is_active=1 AND p.is_active=1 AND v.variant_id IN (${marks})`, ids);
+        const standaloneProducts = await q(`SELECT p.product_id AS cart_id,NULL AS variant_id,p.product_id,p.category_id,p.name,p.price,p.stock,p.is_coming_soon FROM products p WHERE p.is_active=1 AND p.product_id IN (${marks})`, ids);
+        const productMap = new Map([...variantProducts, ...standaloneProducts].map(p => [p.cart_id, p]));
         let total = 0;
         const orderItems = [];
         for (const [id, quantity] of merged) {
