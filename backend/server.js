@@ -247,7 +247,7 @@ app.post('/api/create-order', async(req, res) => {
         res.status(201).json({ success: true, key: process.env.RAZORPAY_KEY_ID, razorpayOrderId: razorpayOrder.id, amount: razorpayOrder.amount, currency: razorpayOrder.currency, orderNumber: orderId, paymentRef: paymentId });
     } catch (error) {
         console.error('Create order:', error);
-        const detail = clean(error ? .error ? .description || error ? .description || error ? .message, 250);
+        const detail = clean(error?.error?.description || error?.description || error?.message, 250);
         res.status(500).json({ success: false, error: detail ? `Could not create your payment order: ${detail}` : 'Could not create your payment order.' });
     }
 });
