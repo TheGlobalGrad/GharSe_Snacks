@@ -51,6 +51,16 @@ async function sendEmail(to, subject, html) {
         throw new Error('Email delivery failed. Please try again shortly.');
     }
 }
+async function sendOptionalEmail(to, subject, html) {
+    try {
+        await sendEmail(to, subject, html);
+        return true;
+    } catch (error) {
+        // A customer acknowledgement must never prevent a saved form or account.
+        console.warn(`Optional customer email was not delivered to ${to}: ${error.message}`);
+        return false;
+    }
+}
 const esc = value => String(value || '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
 
 async function createOrFindBulkCustomer({ name, email, phone, state, address }) {
@@ -122,7 +132,8 @@ app.post('/api/partner-interest', async(req, res) => {
         const partnerId = ref('PART', result.insertId);
         await q('UPDATE partner_applications SET partner_id=? WHERE id=?', [partnerId, result.insertId]);
         const summary = `<p><strong>${esc(name)}</strong> (${esc(partnerId)}) has submitted a partner enquiry.</p><p>Email: ${esc(email)}<br>Phone: ${esc(contact)}<br>State: ${esc(state)}</p><p>${esc(details)}</p>`;
-        await Promise.all([sendEmail(email, 'We received your GharSe Snacks partner interest', `<p>Hi ${esc(name)},</p><p>Thank you for your interest in partnering with GharSe Snacks. Your partner ID is <strong>${partnerId}</strong>. Our team will contact you within seven days.</p>`), sendEmail(BUSINESS_EMAIL, `New partner interest: ${partnerId}`, summary)]);
+        await sendEmail(BUSINESS_EMAIL, `New partner interest: ${partnerId}`, summary);
+        await sendOptionalEmail(email, 'We received your GharSe Snacks partner interest', `<p>Hi ${esc(name)},</p><p>Thank you for your interest in partnering with GharSe Snacks. Your partner ID is <strong>${partnerId}</strong>. Our team will contact you within seven days.</p>`);
         res.status(201).json({ success: true, partnerId, message: 'Partner interest submitted.' });
     } catch (error) {
         console.error(error);
@@ -147,7 +158,8 @@ app.post('/api/bulk-order-enquiries', async(req, res) => {
         await q('UPDATE bulk_order_enquiries SET enquiry_id=? WHERE id=?', [enquiryId, result.insertId]);
         const details = `<p><strong>Bulk enquiry:</strong> ${esc(enquiryId)}</p><p><strong>Customer:</strong> ${esc(name)}<br><strong>Email:</strong> ${esc(email)}<br><strong>Phone:</strong> ${esc(phone)}<br><strong>State:</strong> ${esc(state)}<br><strong>Address:</strong> ${esc(address)}<br><strong>Product:</strong> ${esc(product)}<br><strong>Quantity:</strong> ${esc(quantity)}</p><p><strong>Requirements:</strong><br>${esc(requirements || 'None')}</p>`;
         const accountNote = customer.accountCreated ? `<p>We have also created your GharSe Snacks customer ID: <strong>${esc(customer.customerId)}</strong>. To set your password and log in, use reset code <strong>${esc(customer.setupCode)}</strong> on the Forgot password screen within 15 minutes.</p>` : `<p>Your GharSe Snacks customer ID is <strong>${esc(customer.customerId)}</strong>.</p>`;
-        await Promise.all([sendEmail(email, 'Your GharSe Snacks bulk-order enquiry', `<p>Hi ${esc(name)},</p><p>We received your bulk-order enquiry. Your reference is <strong>${enquiryId}</strong>. Our team will contact you within seven days with availability and pricing.</p>${accountNote}`), sendEmail(BUSINESS_EMAIL, `New bulk order enquiry: ${enquiryId}`, details)]);
+        await sendEmail(BUSINESS_EMAIL, `New bulk order enquiry: ${enquiryId}`, details);
+        await sendOptionalEmail(email, 'Your GharSe Snacks bulk-order enquiry', `<p>Hi ${esc(name)},</p><p>We received your bulk-order enquiry. Your reference is <strong>${enquiryId}</strong>. Our team will contact you within seven days with availability and pricing.</p>${accountNote}`);
         res.status(201).json({ success: true, enquiryId, customerId: customer.customerId, accountCreated: customer.accountCreated });
     } catch (error) {
         console.error('Bulk order enquiry:', error);
@@ -162,10 +174,8 @@ app.post('/api/subscriptions', async(req, res) => {
         const result = await q('INSERT INTO subscriptions (email) VALUES (?)', [email]);
         const subscriptionId = ref('SUB', result.insertId);
         await q('UPDATE subscriptions SET subscription_id=? WHERE id=?', [subscriptionId, result.insertId]);
-        await Promise.all([
-            sendEmail(email, 'Welcome to GharSe Snacks updates', `<p>Welcome to GharSe Snacks!</p><p>You will receive new regional snack drops, launch announcements and early-bird offers.</p>`),
-            sendEmail(BUSINESS_EMAIL, `New newsletter subscriber: ${subscriptionId}`, `<p><strong>${esc(email)}</strong> subscribed to GharSe Snacks updates.</p><p>Subscription ID: ${esc(subscriptionId)}</p>`)
-        ]);
+        await sendEmail(BUSINESS_EMAIL, `New newsletter subscriber: ${subscriptionId}`, `<p><strong>${esc(email)}</strong> subscribed to GharSe Snacks updates.</p><p>Subscription ID: ${esc(subscriptionId)}</p>`);
+        await sendOptionalEmail(email, 'Welcome to GharSe Snacks updates', `<p>Welcome to GharSe Snacks!</p><p>Thank you for joining us. You will receive new regional snack drops, launch announcements, and early-bird offers.</p><p>With love,<br><strong>GharSe Snacks</strong></p>`);
         res.status(201).json({ success: true, subscriptionId });
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') return res.json({ success: true, alreadySubscribed: true });
@@ -184,10 +194,8 @@ app.post('/api/auth/signup', async(req, res) => {
         const result = await q('INSERT INTO users (name,email,password_hash,phone,place,state,address,preferred_snacks) VALUES (?,?,?,?,?,?,?,?)', [name, email, hash, phone || null, clean(req.body.place, 100) || null, clean(req.body.state, 100) || null, clean(req.body.address, 2000) || null, clean(req.body.preferredSnacks, 255) || null]);
         const userId = ref('USR', result.insertId);
         await q('UPDATE users SET user_id=? WHERE id=?', [userId, result.insertId]);
-        await Promise.all([
-            sendEmail(email, 'Welcome to GharSe Snacks', `<p>Hi ${esc(name)},</p><p>Your account is ready. Your GharSe Snacks user ID is <strong>${userId}</strong>.</p>`),
-            sendEmail(BUSINESS_EMAIL, `New customer account: ${userId}`, `<p><strong>${esc(name)}</strong> created a GharSe Snacks customer account.</p><p>Email: ${esc(email)}<br>Customer ID: ${esc(userId)}</p>`)
-        ]);
+        await sendEmail(BUSINESS_EMAIL, `New customer account: ${userId}`, `<p><strong>${esc(name)}</strong> created a GharSe Snacks customer account.</p><p>Email: ${esc(email)}<br>Customer ID: ${esc(userId)}</p>`);
+        await sendOptionalEmail(email, 'Welcome to GharSe Snacks', `<p>Hi ${esc(name)},</p><p>Thank you for joining GharSe Snacks. Your account is ready and your customer ID is <strong>${userId}</strong>.</p><p>We are delighted to bring a little taste of home to your doorstep. Watch your inbox for snack launches, offers, and updates.</p><p>With love,<br><strong>GharSe Snacks</strong></p>`);
         res.status(201).json({ success: true, user: { id: result.insertId, customerId: userId, name, email, phone, accountType: 'registered' } });
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ success: false, error: 'An account with this email already exists. Please log in.' });

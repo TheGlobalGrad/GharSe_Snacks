@@ -1,0 +1,8 @@
+Email failed for qa-1786952776@example.com: Invalid `to` field. Please use our testing email address instead of domains like `example.com`. See our documentation for more information.
+Optional customer email was not delivered to qa-1786952776@example.com: Email delivery failed. Please try again shortly.
+Email failed for qa-1786952776@example.com: Invalid `to` field. Please use our testing email address instead of domains like `example.com`. See our documentation for more information.
+Optional customer email was not delivered to qa-1786952776@example.com: Email delivery failed. Please try again shortly.
+Email failed for qa-account-1786952794@example.com: Invalid `to` field. Please use our testing email address instead of domains like `example.com`. See our documentation for more information.
+Optional customer email was not delivered to qa-account-1786952794@example.com: Email delivery failed. Please try again shortly.
+Email failed for qa-subscribe-1786952794@example.com: Invalid `to` field. Please use our testing email address instead of domains like `example.com`. See our documentation for more information.
+Optional customer email was not delivered to qa-subscribe-1786952794@example.com: Email delivery failed. Please try again shortly.
