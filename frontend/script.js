@@ -254,7 +254,7 @@ function money(value) {
 }
 
 function productCardLabel(product) {
-    if (product.variants ? .length) return `${product.variants.length} varieties`;
+    if (product.variants?.length) return `${product.variants.length} varieties`;
     return Number(product.price) > 0 ? money(product.price) : "Price unavailable";
 }
 
