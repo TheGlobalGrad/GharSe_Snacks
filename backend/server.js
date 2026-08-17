@@ -266,7 +266,8 @@ app.post('/api/verify-payment', async(req, res) => {
         const [paymentRows] = await connection.query('SELECT * FROM payments WHERE razorpay_order_id=? FOR UPDATE', [orderId]);
         if (!paymentRows.length) throw new Error('Payment order was not found.');
         const payment = paymentRows[0];
-        if (payment.status !== 'paid') {
+        const justPaid = payment.status !== 'paid';
+        if (justPaid) {
             const [items] = await connection.query('SELECT * FROM order_items WHERE order_id=?', [payment.order_id]);
             for (const item of items) {
                 const [update] = item.variant_id ?
@@ -279,13 +280,14 @@ app.post('/api/verify-payment', async(req, res) => {
             await connection.query("UPDATE payments SET razorpay_payment_id=?,razorpay_signature=?,status='paid',paid_at=NOW() WHERE id=?", [paymentId, signature, payment.id]);
             await connection.query("UPDATE orders SET status='paid' WHERE id=?", [payment.order_id]);
         }
-        const [orders] = await connection.query('SELECT * FROM orders WHERE id=?', [payment.order_id]);
-        const [items] = await connection.query('SELECT product_id,variant_id,category_id,product_name,quantity,unit_price FROM order_items WHERE order_id=?', [payment.order_id]);
+        const [orders] = await connection.query(`SELECT o.*,u.user_id AS customer_id,u.email AS customer_email
+            FROM orders o LEFT JOIN users u ON u.id=o.user_id WHERE o.id=?`, [payment.order_id]);
+        const [items] = await connection.query('SELECT product_id,variant_id,product_name,category_id,quantity,unit_price FROM order_items WHERE order_id=?', [payment.order_id]);
         await connection.commit();
         const order = orders[0],
-            list = items.map(i => `<li><strong>${esc(i.product_name)}</strong><br>Product ID: ${esc(i.product_id)} · Variant ID: ${esc(i.variant_id || 'Standalone product')} · Category ID: ${esc(i.category_id)}<br>${i.quantity} × ₹${Number(i.unit_price).toFixed(2)}</li>`).join('');
-        const summary = `<p><strong>Order ID:</strong> ${esc(order.order_id)}<br><strong>Payment ID:</strong> ${esc(paymentId)}<br><strong>Customer/User ID:</strong> ${esc(order.user_id || 'Guest checkout')}<br><strong>Total paid:</strong> ₹${Number(order.total_amount).toFixed(2)}</p><ul>${list}</ul>`;
-        await sendEmail(BUSINESS_EMAIL, `New paid order: ${order.order_id}`, `${summary}<p><strong>Customer:</strong> ${esc(order.customer_name)}<br><strong>Phone:</strong> ${esc(order.customer_phone)}<br><strong>Delivery address:</strong> ${esc(order.delivery_address)}</p>`);
+            list = items.map(i => `<li>${esc(i.product_name)} — Product ID: ${esc(i.product_id)}, Variant ID: ${esc(i.variant_id || 'None')}, Category ID: ${esc(i.category_id)} — ${i.quantity} × ₹${Number(i.unit_price).toFixed(2)}</li>`).join('');
+        const summary = `<p><strong>Order ID:</strong> ${esc(order.order_id)}<br><strong>Payment reference:</strong> ${esc(payment.payment_id)}<br><strong>Razorpay order ID:</strong> ${esc(orderId)}<br><strong>Razorpay payment ID:</strong> ${esc(paymentId)}<br><strong>Amount paid:</strong> ₹${Number(payment.amount).toFixed(2)}<br><strong>Total:</strong> ₹${Number(order.total_amount).toFixed(2)}</p><ul>${list}</ul>`;
+        if (justPaid) await sendEmail(BUSINESS_EMAIL, `New paid order: ${order.order_id}`, `${summary}<p><strong>Customer:</strong> ${esc(order.customer_name)}<br><strong>User ID:</strong> ${esc(order.customer_id || 'Guest checkout')}<br><strong>Email:</strong> ${esc(order.customer_email || 'Not provided')}<br><strong>Phone:</strong> ${esc(order.customer_phone)}<br><strong>Address:</strong> ${esc(order.delivery_address)}</p>`);
         res.json({ success: true, verified: true, orderNumber: order.order_id, paymentRef: payment.payment_id });
     } catch (error) {
         await connection.rollback();
