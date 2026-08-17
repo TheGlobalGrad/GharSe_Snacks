@@ -280,12 +280,12 @@ app.post('/api/verify-payment', async(req, res) => {
             await connection.query("UPDATE orders SET status='paid' WHERE id=?", [payment.order_id]);
         }
         const [orders] = await connection.query('SELECT * FROM orders WHERE id=?', [payment.order_id]);
-        const [items] = await connection.query('SELECT product_name,category_id,quantity,unit_price FROM order_items WHERE order_id=?', [payment.order_id]);
+        const [items] = await connection.query('SELECT product_id,variant_id,category_id,product_name,quantity,unit_price FROM order_items WHERE order_id=?', [payment.order_id]);
         await connection.commit();
         const order = orders[0],
-            list = items.map(i => `<li>${esc(i.product_name)} (${esc(i.category_id)}) — ${i.quantity} × ₹${Number(i.unit_price).toFixed(2)}</li>`).join('');
-        const summary = `<p><strong>Order ID:</strong> ${esc(order.order_id)}<br><strong>Payment ID:</strong> ${esc(paymentId)}<br><strong>Total:</strong> ₹${Number(order.total_amount).toFixed(2)}</p><ul>${list}</ul>`;
-        await sendEmail(BUSINESS_EMAIL, `New paid order: ${order.order_id}`, `${summary}<p><strong>Customer:</strong> ${esc(order.customer_name)}<br><strong>Phone:</strong> ${esc(order.customer_phone)}<br><strong>Address:</strong> ${esc(order.delivery_address)}</p>`);
+            list = items.map(i => `<li><strong>${esc(i.product_name)}</strong><br>Product ID: ${esc(i.product_id)} · Variant ID: ${esc(i.variant_id || 'Standalone product')} · Category ID: ${esc(i.category_id)}<br>${i.quantity} × ₹${Number(i.unit_price).toFixed(2)}</li>`).join('');
+        const summary = `<p><strong>Order ID:</strong> ${esc(order.order_id)}<br><strong>Payment ID:</strong> ${esc(paymentId)}<br><strong>Customer/User ID:</strong> ${esc(order.user_id || 'Guest checkout')}<br><strong>Total paid:</strong> ₹${Number(order.total_amount).toFixed(2)}</p><ul>${list}</ul>`;
+        await sendEmail(BUSINESS_EMAIL, `New paid order: ${order.order_id}`, `${summary}<p><strong>Customer:</strong> ${esc(order.customer_name)}<br><strong>Phone:</strong> ${esc(order.customer_phone)}<br><strong>Delivery address:</strong> ${esc(order.delivery_address)}</p>`);
         res.json({ success: true, verified: true, orderNumber: order.order_id, paymentRef: payment.payment_id });
     } catch (error) {
         await connection.rollback();

@@ -47,7 +47,7 @@ const PRODUCT_IMAGE_FILES = {
 
     "besan ladoo": "Images/Besan Ladoo.jpeg",
 
-    "khakhra": "Images/Khakhra.jpeg",
+    "coin khakhra": "Images/Coin Khakhra.jpeg",
 
     "thepla": "Images/Thepla.jpeg",
 
@@ -88,6 +88,17 @@ const PRODUCT_CATALOG = [
         pack_size: "",
         image_url: "Images/Khakhra.jpeg",
         description: "“Crispy, flavourful khakhra with a perfect blend of traditional spices, offering a light and crunchy Gujarati-style snack.",
+        stock: 0,
+        category: "Gujarati Snacks"
+    },
+
+    {
+        name: "Coin Khakhra",
+        city: "Ahmedabad",
+        price: null,
+        pack_size: "",
+        image_url: "Images/Coin Khakhra.jpeg",
+        description: "“A thin, crunchy Gujarati snack roasted to perfection, with a light and satisfying bite.",
         stock: 0,
         category: "Gujarati Snacks"
     },
@@ -243,7 +254,7 @@ function money(value) {
 }
 
 function productCardLabel(product) {
-    if (product.variants?.length) return `${product.variants.length} varieties`;
+    if (product.variants ? .length) return `${product.variants.length} varieties`;
     return Number(product.price) > 0 ? money(product.price) : "Price unavailable";
 }
 
