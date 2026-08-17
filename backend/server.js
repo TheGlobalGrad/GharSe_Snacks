@@ -215,7 +215,7 @@ app.post('/api/create-order', async(req, res) => {
         address = clean(customer.address, 2000),
         place = clean(customer.place, 100),
         email = clean(customer.email).toLowerCase();
-    if (!items.length || !name || !phone || !address || !place || !emailOk(email)) return res.status(400).json({ success: false, error: 'Please provide your name, email, phone number, delivery address and city.' });
+    if (!items.length || !name || !phone || !address || (email && !emailOk(email))) return res.status(400).json({ success: false, error: 'Please provide your name, phone number, and delivery address.' });
     try {
         const merged = new Map();
         for (const item of items) {
@@ -237,11 +237,12 @@ app.post('/api/create-order', async(req, res) => {
             total += price * quantity;
             orderItems.push({...product, quantity, price });
         }
+        const deliveryPlace = place || 'Not provided';
         const razorpayOrder = await razorpay.orders.create({ amount: Math.round(total * 100), currency: 'INR', receipt: `gss_${Date.now()}`, notes: { customer_name: name, customer_phone: phone } });
         let userId = Number.isInteger(Number(customer.userId)) && Number(customer.userId) > 0 ? Number(customer.userId) : null;
         if (userId && !(await q('SELECT id FROM users WHERE id=?', [userId])).length) userId = null;
-        const result = await q('INSERT INTO orders (user_id,customer_name,customer_email,customer_phone,delivery_address,delivery_place,delivery_state,subtotal,total_amount) VALUES (?,?,?,?,?,?,?,?,?)', [userId, name, email || null, phone, address, place, clean(customer.state, 100) || null, total, total]);
-        const orderId = ref(`${cityCode(place)}_ORD`, result.insertId);
+        const result = await q('INSERT INTO orders (user_id,customer_name,customer_email,customer_phone,delivery_address,delivery_place,delivery_state,subtotal,total_amount) VALUES (?,?,?,?,?,?,?,?,?)', [userId, name, email || null, phone, address, deliveryPlace, clean(customer.state, 100) || null, total, total]);
+        const orderId = ref(`${cityCode(deliveryPlace)}_ORD`, result.insertId);
         await q('UPDATE orders SET order_id=? WHERE id=?', [orderId, result.insertId]);
         for (const item of orderItems) await q('INSERT INTO order_items (order_id,product_id,variant_id,category_id,product_name,unit_price,quantity) VALUES (?,?,?,?,?,?,?)', [result.insertId, item.product_id, item.variant_id, item.category_id, item.name, item.price, item.quantity]);
         const payment = await q('INSERT INTO payments (order_id,razorpay_order_id,amount) VALUES (?,?,?)', [result.insertId, razorpayOrder.id, total]);

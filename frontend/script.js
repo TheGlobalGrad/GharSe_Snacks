@@ -243,7 +243,7 @@ function money(value) {
 }
 
 function productCardLabel(product) {
-    if (product.variants ? .length) return `${product.variants.length} varieties`;
+    if (product.variants?.length) return `${product.variants.length} varieties`;
     return Number(product.price) > 0 ? money(product.price) : "Price unavailable";
 }
 
@@ -2507,9 +2507,7 @@ document.addEventListener(
                                         ),
 
                                     email:
-                                        formData.get(
-                                            "email"
-                                        ),
+                                        CURRENT_USER?.email || "",
 
                                     phone:
                                         formData.get(
@@ -2522,14 +2520,10 @@ document.addEventListener(
                                         ),
 
                                     place:
-                                        formData.get(
-                                            "place"
-                                        ),
+                                        "",
 
                                     state:
-                                        formData.get(
-                                            "state"
-                                        )
+                                        ""
 
                                 },
 
@@ -2645,10 +2639,27 @@ document.addEventListener(
             };
 
 
-            const rzp =
-                new Razorpay(
-                    options
+            if (typeof window.Razorpay !== "function") {
+
+                throw new Error(
+                    "Razorpay could not load. Check your internet connection and disable any script blocker, then try again."
                 );
+
+            }
+
+            options.prefill = {
+                name: formData.get("name") || "",
+                contact: formData.get("phone") || "",
+                email: CURRENT_USER?.email || ""
+            };
+
+            options.modal = {
+                ondismiss: function () {
+                    if (submitBtn) submitBtn.disabled = false;
+                }
+            };
+
+            const rzp = new window.Razorpay(options);
 
 
             rzp.open();
