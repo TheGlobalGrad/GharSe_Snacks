@@ -28,8 +28,15 @@ function getMailTransport() {
 }
 async function sendEmail(to, subject, html) {
     const transport = getMailTransport();
-    if (!transport || !to) { console.warn('Email skipped: configure GMAIL_USER and GMAIL_APP_PASSWORD in backend/.env.'); return false; }
-    try { await transport.sendMail({ from: `GharSe Snacks <${process.env.GMAIL_USER}>`, to, subject, html }); return true; } catch (error) { console.error('Email failed:', error.message); return false; }
+    if (!transport || !to) throw new Error('Email is not configured. Set GMAIL_USER and GMAIL_APP_PASSWORD in backend/.env.');
+    try {
+        const result = await transport.sendMail({ from: `GharSe Snacks <${process.env.GMAIL_USER}>`, to, subject, html });
+        console.log(`Email accepted for delivery to ${to} (${result.messageId}).`);
+        return result;
+    } catch (error) {
+        console.error(`Email failed for ${to}:`, error.message);
+        throw new Error('Email delivery failed. Please try again shortly.');
+    }
 }
 const esc = value => String(value || '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
 
@@ -63,7 +70,9 @@ app.get('/test-db', async(_req, res) => {
 app.get('/api/health', async(_req, res) => {
     try {
         await q('SELECT 1');
-        res.json({ success: true, database: 'connected', payments: razorpayConfigured ? 'configured' : 'not configured', email: getMailTransport() ? 'configured' : 'not configured' });
+        const transport = getMailTransport();
+        const email = transport ? (await transport.verify(), 'ready') : 'not configured';
+        res.json({ success: true, database: 'connected', payments: razorpayConfigured ? 'configured' : 'not configured', email });
     } catch (error) { res.status(503).json({ success: false, database: 'unavailable', error: error.message }); }
 });
 app.get('/api/products', async(_req, res) => {
@@ -236,13 +245,17 @@ app.post('/api/create-order', async(req, res) => {
             orderItems.push({...product, quantity, price });
         }
         const razorpayOrder = await razorpay.orders.create({ amount: Math.round(total * 100), currency: 'INR', receipt: `gss_${Date.now()}`, notes: { customer_name: name, customer_phone: phone } });
-        let userId = Number.isInteger(Number(customer.userId)) && Number(customer.userId) > 0 ? Number(customer.userId) : null;
-        if (userId && !(await q('SELECT id FROM users WHERE id=?', [userId])).length) userId = null;
+        const userIdentifier = clean(String(customer.userId || ''), 40);
+        let userId = null;
+        if (userIdentifier) {
+            const users = await q('SELECT user_id FROM users WHERE id=? OR user_id=? LIMIT 1', [Number(userIdentifier) || 0, userIdentifier]);
+            userId = users[0]?.user_id || null;
+        }
         const result = await q('INSERT INTO orders (user_id,customer_name,customer_phone,delivery_address,subtotal,total_amount) VALUES (?,?,?,?,?,?)', [userId, name, phone, address, total, total]);
         const orderId = ref('ORD', result.insertId);
         await q('UPDATE orders SET order_id=? WHERE id=?', [orderId, result.insertId]);
-        for (const item of orderItems) await q('INSERT INTO order_items (order_id,product_id,variant_id,category_id,product_name,unit_price,quantity) VALUES (?,?,?,?,?,?,?)', [result.insertId, item.product_id, item.variant_id, item.category_id, item.name, item.price, item.quantity]);
-        const payment = await q('INSERT INTO payments (order_id,razorpay_order_id,amount) VALUES (?,?,?)', [result.insertId, razorpayOrder.id, total]);
+        for (const item of orderItems) await q('INSERT INTO order_items (order_id,product_id,variant_id,category_id,product_name,unit_price,quantity) VALUES (?,?,?,?,?,?,?)', [orderId, item.product_id, item.variant_id, item.category_id, item.name, item.price, item.quantity]);
+        const payment = await q('INSERT INTO payments (order_id,razorpay_order_id,amount) VALUES (?,?,?)', [orderId, razorpayOrder.id, total]);
         const paymentId = ref('PAY', payment.insertId);
         await q('UPDATE payments SET payment_id=? WHERE id=?', [paymentId, payment.insertId]);
         res.status(201).json({ success: true, key: process.env.RAZORPAY_KEY_ID, razorpayOrderId: razorpayOrder.id, amount: razorpayOrder.amount, currency: razorpayOrder.currency, orderNumber: orderId, paymentRef: paymentId });
@@ -278,10 +291,10 @@ app.post('/api/verify-payment', async(req, res) => {
                 await connection.query("INSERT INTO inventory_movements (product_id,change_quantity,reason,order_id) VALUES (?,?,'sale',?)", [item.product_id, -item.quantity, payment.order_id]);
             }
             await connection.query("UPDATE payments SET razorpay_payment_id=?,razorpay_signature=?,status='paid',paid_at=NOW() WHERE id=?", [paymentId, signature, payment.id]);
-            await connection.query("UPDATE orders SET status='paid' WHERE id=?", [payment.order_id]);
+            await connection.query("UPDATE orders SET status='paid' WHERE order_id=?", [payment.order_id]);
         }
         const [orders] = await connection.query(`SELECT o.*,u.user_id AS customer_id,u.email AS customer_email
-            FROM orders o LEFT JOIN users u ON u.id=o.user_id WHERE o.id=?`, [payment.order_id]);
+            FROM orders o LEFT JOIN users u ON u.user_id=o.user_id WHERE o.order_id=?`, [payment.order_id]);
         const [items] = await connection.query('SELECT product_id,variant_id,product_name,category_id,quantity,unit_price FROM order_items WHERE order_id=?', [payment.order_id]);
         await connection.commit();
         const order = orders[0],

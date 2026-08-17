@@ -1,0 +1,4 @@
+◇ injected env (13) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+GharSe Snacks running on http://localhost:3001
+MySQL connected successfully!
